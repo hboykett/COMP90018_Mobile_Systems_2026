@@ -8,9 +8,29 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 /.idea/misc.xml
+/.idea/gradle.xml
 .DS_Store
 /build
+build/
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+
+# Build outputs
+*.apk
+*.aab
+*.ap_
+*.aar
+*.class
+output.json
+
+# Kotlin/Gradle caches
+.kotlin/
+hs_err_pid*
+
+# Signing / credentials - never commit these
+*.jks
+*.keystore
+key.properties
+signing.properties
