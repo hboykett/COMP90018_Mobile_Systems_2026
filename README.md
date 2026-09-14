@@ -42,6 +42,10 @@ Before pushing, run:
 
 Detekt also pulls in the [Compose rules](https://mrmans0n.github.io/compose-rules/) ruleset (`io.nlopez.compose.rules:detekt`), which checks Compose-specific conventions such as exposing a `modifier: Modifier` parameter on stateless composables.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs `./gradlew check` (tests, Android Lint, ktlint, detekt) on every pull request and on every push to `main`. A red check on a PR means one of those failed — click into the run's logs to see which task and what it reported; the failure will match what you'd see running that same command locally. There's no auto-fix step in CI (it doesn't push formatting changes back) — run `./gradlew ktlintFormat detekt` locally and push the fix.
+
 ### Troubleshooting: `./gradlew` fails with `What went wrong: 26` (or similar bare number)
 
 This project's Gradle wrapper (8.7) doesn't support very new JDKs — if your machine's default `java` is something like JDK 24+ (check with `java -version`), Gradle fails to even start, with an unhelpful error that's just the major version number.
