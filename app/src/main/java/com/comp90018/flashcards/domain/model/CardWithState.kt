@@ -8,5 +8,5 @@ import com.comp90018.flashcards.data.local.entity.SpacedRepetitionState
  */
 data class CardWithState(
     val card: CardEntity,
-    val state: SpacedRepetitionState
+    val state: SpacedRepetitionState,
 )

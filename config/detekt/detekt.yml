@@ -1,0 +1,42 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+comments:
+  UndocumentedPublicClass:
+    active: false
+  UndocumentedPublicFunction:
+    active: false
+
+complexity:
+  LongParameterList:
+    functionThreshold: 7
+    constructorThreshold: 8
+  TooManyFunctions:
+    thresholdInFiles: 15
+    thresholdInClasses: 15
+    thresholdInInterfaces: 15
+    thresholdInObjects: 15
+
+style:
+  MaxLineLength:
+    maxLineLength: 120
+  MagicNumber:
+    active: false
+  ForbiddenComment:
+    active: false
+  WildcardImport:
+    # Jetpack Compose's own API guidelines recommend wildcard imports for these
+    # packages; kept in sync with .editorconfig's ij_kotlin_packages_to_use_import_on_demand.
+    excludeImports:
+      - 'androidx.compose.foundation.layout.*'
+      - 'androidx.compose.material3.*'
+      - 'androidx.compose.runtime.*'
+
+naming:
+  FunctionNaming:
+    # Allow PascalCase for @Composable functions.
+    functionPattern: '^([a-z][a-zA-Z0-9]*)|([A-Z][a-zA-Z0-9]*)$'

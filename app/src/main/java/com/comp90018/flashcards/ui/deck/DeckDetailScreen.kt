@@ -24,7 +24,7 @@ fun DeckDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddCard: (String) -> Unit,
     onNavigateToEditCard: (String, String) -> Unit,
-    viewModel: DeckDetailViewModel = hiltViewModel()
+    viewModel: DeckDetailViewModel = hiltViewModel(),
 ) {
     val deck by viewModel.deck.collectAsState()
     val cards by viewModel.cards.collectAsState()
@@ -37,27 +37,28 @@ fun DeckDetailScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigateToAddCard(viewModel.deckId) }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Card")
             }
-        }
+        },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(cards) { card ->
                 CardItem(
                     card = card,
                     onEditClick = { onNavigateToEditCard(viewModel.deckId, card.cardId) },
-                    onDeleteClick = { viewModel.deleteCard(card) }
+                    onDeleteClick = { viewModel.deleteCard(card) },
                 )
             }
         }
@@ -68,15 +69,16 @@ fun DeckDetailScreen(
 fun CardItem(
     card: CardEntity,
     onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier =
+                Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = "F: ${card.front}", style = MaterialTheme.typography.bodyLarge)

@@ -16,7 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun AddEditCardScreen(
     onNavigateBack: () -> Unit,
-    viewModel: AddEditCardViewModel = hiltViewModel()
+    viewModel: AddEditCardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -34,33 +34,34 @@ fun AddEditCardScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             OutlinedTextField(
                 value = uiState.front,
                 onValueChange = { viewModel.onFrontChange(it) },
                 label = { Text("Front") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = uiState.back,
                 onValueChange = { viewModel.onBackChange(it) },
                 label = { Text("Back") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
             Button(
                 onClick = { viewModel.saveCard() },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState.front.isNotBlank() && uiState.back.isNotBlank()
+                enabled = uiState.front.isNotBlank() && uiState.back.isNotBlank(),
             ) {
                 Text("Save Card")
             }

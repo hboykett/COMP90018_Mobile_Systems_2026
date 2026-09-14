@@ -12,9 +12,8 @@ import android.hardware.SensorManager
  */
 class TiltFlipDetector(
     context: Context,
-    private val onFlipDetected: () -> Unit
+    private val onFlipDetected: () -> Unit,
 ) : SensorEventListener {
-
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
@@ -54,7 +53,10 @@ class TiltFlipDetector(
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+    override fun onAccuracyChanged(
+        sensor: Sensor?,
+        accuracy: Int,
+    ) {
         // Not used
     }
 }

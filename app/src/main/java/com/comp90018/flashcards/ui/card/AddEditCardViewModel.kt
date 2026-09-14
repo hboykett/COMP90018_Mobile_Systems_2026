@@ -18,54 +18,60 @@ data class AddEditCardUiState(
     val front: String = "",
     val back: String = "",
     val isEditing: Boolean = false,
-    val isSaved: Boolean = false
+    val isSaved: Boolean = false,
 )
 
 @HiltViewModel
-class AddEditCardViewModel @Inject constructor(
-    private val repository: CardRepository,
-    savedStateHandle: SavedStateHandle
-) : ViewModel() {
+class AddEditCardViewModel
+    @Inject
+    constructor(
+        private val repository: CardRepository,
+        savedStateHandle: SavedStateHandle,
+    ) : ViewModel() {
+        private val deckId: String = checkNotNull(savedStateHandle["deckId"])
+        private val cardId: String? = savedStateHandle["cardId"]
 
-    private val deckId: String = checkNotNull(savedStateHandle["deckId"])
-    private val cardId: String? = savedStateHandle["cardId"]
+        private val _uiState = MutableStateFlow(AddEditCardUiState(isEditing = cardId != null))
+        val uiState: StateFlow<AddEditCardUiState> = _uiState.asStateFlow()
 
-    private val _uiState = MutableStateFlow(AddEditCardUiState(isEditing = cardId != null))
-    val uiState: StateFlow<AddEditCardUiState> = _uiState.asStateFlow()
-
-    init {
-        if (cardId != null) {
-            viewModelScope.launch {
-                repository.getCardById(cardId)?.let { card ->
-                    _uiState.update { it.copy(front = card.front, back = card.back) }
+        init {
+            if (cardId != null) {
+                viewModelScope.launch {
+                    repository.getCardById(cardId)?.let { card ->
+                        _uiState.update { it.copy(front = card.front, back = card.back) }
+                    }
                 }
             }
         }
-    }
 
-    fun onFrontChange(newValue: String) {
-        _uiState.update { it.copy(front = newValue) }
-    }
+        fun onFrontChange(newValue: String) {
+            _uiState.update { it.copy(front = newValue) }
+        }
 
-    fun onBackChange(newValue: String) {
-        _uiState.update { it.copy(back = newValue) }
-    }
+        fun onBackChange(newValue: String) {
+            _uiState.update { it.copy(back = newValue) }
+        }
 
-    fun saveCard() {
-        val state = uiState.value
-        if (state.front.isBlank() || state.back.isBlank()) return
+        fun saveCard() {
+            val state = uiState.value
+            if (state.front.isBlank() || state.back.isBlank()) return
 
-        viewModelScope.launch {
-            if (cardId != null) {
-                repository.updateCard(
-                    CardEntity(cardId = cardId, deckId = deckId, front = state.front, back = state.back)
-                )
-            } else {
-                repository.insertCard(
-                    CardEntity(cardId = UUID.randomUUID().toString(), deckId = deckId, front = state.front, back = state.back)
-                )
+            viewModelScope.launch {
+                if (cardId != null) {
+                    repository.updateCard(
+                        CardEntity(cardId = cardId, deckId = deckId, front = state.front, back = state.back),
+                    )
+                } else {
+                    repository.insertCard(
+                        CardEntity(
+                            cardId = UUID.randomUUID().toString(),
+                            deckId = deckId,
+                            front = state.front,
+                            back = state.back,
+                        ),
+                    )
+                }
+                _uiState.update { it.copy(isSaved = true) }
             }
-            _uiState.update { it.copy(isSaved = true) }
         }
     }
-}
