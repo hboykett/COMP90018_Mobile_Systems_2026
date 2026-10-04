@@ -16,6 +16,7 @@ import com.comp90018.flashcards.ui.card.AddEditCardScreen
 import com.comp90018.flashcards.ui.deck.DeckDetailScreen
 import com.comp90018.flashcards.ui.deck.DeckListScreen
 import com.comp90018.flashcards.ui.study.StudyScreen
+import com.comp90018.flashcards.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -23,10 +24,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            AppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.secondary
                 ) {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "home") {
