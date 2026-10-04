@@ -1,5 +1,10 @@
 package com.comp90018.flashcards.ui.theme
 import android.app.Activity
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -9,10 +14,23 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.runtime.*
+
+
+
+
 
 private val lightScheme = lightColorScheme(
     primary = primaryLight,
@@ -256,9 +274,9 @@ val unspecified_scheme = ColorFamily(
 
 @Composable
 fun AppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = rememberDarkThemeFromLightSensor(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable() () -> Unit
 ) {
   val colorScheme = when {
@@ -268,7 +286,7 @@ fun AppTheme(
       }
       
       darkTheme -> darkScheme
-      else -> highContrastDarkColorScheme
+      else -> lightScheme
   }
   MaterialTheme(
     colorScheme = colorScheme,
@@ -276,4 +294,54 @@ fun AppTheme(
     content = content
   )
 }
+@Composable
+fun rememberDarkThemeFromLightSensor(
+    darkBelowLux: Float = 20f,   // switch to dark below this
+    lightAboveLux: Float = 60f,  // switch to light above this
+): Boolean {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    // Fallback until the first reading (or if there's no sensor)
+    var isDark by remember { mutableStateOf(false) }
+    val systemDark = isSystemInDarkTheme()
 
+    DisposableEffect(lifecycleOwner) {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
+
+        if (lightSensor == null) {
+            isDark = systemDark // device has no light sensor
+            return@DisposableEffect onDispose {}
+        }
+
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val lux = event.values[0]
+                // Hysteresis: only change state outside the dead zone,
+                // so it doesn't flicker around a single threshold
+                if (lux < darkBelowLux) isDark = true
+                else if (lux > lightAboveLux) isDark = false
+            }
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+
+        // Only listen while the app is visible (saves battery)
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME ->
+                    sensorManager.registerListener(
+                        listener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL
+                    )
+                Lifecycle.Event.ON_PAUSE -> sensorManager.unregisterListener(listener)
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            sensorManager.unregisterListener(listener)
+        }
+    }
+    return isDark
+}
