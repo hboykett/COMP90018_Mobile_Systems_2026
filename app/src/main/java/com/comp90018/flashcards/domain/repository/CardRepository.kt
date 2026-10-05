@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface CardRepository {
     // Deck Operations
-    fun getAllDecks(): Flow<List<DeckEntity>>
+    fun getAllDecks(ownerId: String): Flow<List<DeckEntity>>
 
     suspend fun insertDeck(deck: DeckEntity)
 

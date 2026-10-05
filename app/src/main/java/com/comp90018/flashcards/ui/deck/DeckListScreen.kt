@@ -24,11 +24,14 @@ fun DeckListScreen(
     viewModel: DeckListViewModel = hiltViewModel(),
 ) {
     val decks by viewModel.decks.collectAsState()
+    val displayName by viewModel.displayName.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var newDeckName by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("My Decks") }) },
+        topBar = {
+            DeckListTopBar(displayName = displayName, onSignOut = viewModel::signOut)
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Deck")
@@ -55,30 +58,71 @@ fun DeckListScreen(
     }
 
     if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text("Create New Deck") },
-            text = {
-                OutlinedTextField(
-                    value = newDeckName,
-                    onValueChange = { newDeckName = it },
-                    label = { Text("Deck Name") },
-                )
+        CreateDeckDialog(
+            name = newDeckName,
+            onNameChange = { newDeckName = it },
+            onConfirm = {
+                if (newDeckName.isNotBlank()) {
+                    viewModel.createDeck(newDeckName)
+                    newDeckName = ""
+                    showDialog = false
+                }
             },
-            confirmButton = {
-                Button(onClick = {
-                    if (newDeckName.isNotBlank()) {
-                        viewModel.createDeck(newDeckName)
-                        newDeckName = ""
-                        showDialog = false
-                    }
-                }) { Text("Create") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) { Text("Cancel") }
-            },
+            onDismiss = { showDialog = false },
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DeckListTopBar(
+    displayName: String,
+    onSignOut: () -> Unit,
+) {
+    TopAppBar(
+        title = {
+            Column {
+                Text("My Decks")
+                if (displayName.isNotBlank()) {
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+        },
+        actions = {
+            TextButton(onClick = onSignOut) {
+                Text("Log out")
+            }
+        },
+    )
+}
+
+@Composable
+private fun CreateDeckDialog(
+    name: String,
+    onNameChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Create New Deck") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = onNameChange,
+                label = { Text("Deck Name") },
+            )
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) { Text("Create") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable

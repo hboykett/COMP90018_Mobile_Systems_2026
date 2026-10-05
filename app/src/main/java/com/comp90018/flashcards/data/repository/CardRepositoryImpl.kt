@@ -23,7 +23,7 @@ class CardRepositoryImpl
         private val cardDao: CardDao,
         private val deckDao: DeckDao,
     ) : CardRepository {
-        override fun getAllDecks(): Flow<List<DeckEntity>> = deckDao.getAllDecks()
+        override fun getAllDecks(ownerId: String): Flow<List<DeckEntity>> = deckDao.getAllDecks(ownerId)
 
         override suspend fun insertDeck(deck: DeckEntity) = deckDao.insertDeck(deck)
 

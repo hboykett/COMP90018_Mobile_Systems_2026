@@ -8,6 +8,18 @@ A spaced-repetition flashcard app built with Jetpack Compose, Room, Hilt, and Na
 - JDK 17
 - Android Studio (latest stable) or the Gradle wrapper on the command line
 
+## Google sign-in
+
+Authentication is Firebase Auth. Users can continue with Google, or register and sign in with email and password. Decks stay in the local Room database and are filtered by the Firebase uid. The app never stores the Google password or a plaintext password.
+
+`app/google-services.json` is gitignored. Without that file the project still compiles, and the login button explains that sign-in is not configured.
+
+1. Create a Firebase project and add an Android app with package name `com.comp90018.flashcards`.
+2. From the repo root, run `./gradlew :app:signingReport` and add the **debug** SHA-1 to that Android app. Google sign-in fails with `DEVELOPER_ERROR` (code 10) when the SHA-1 is missing.
+3. In Firebase Authentication, enable the Google provider.
+4. Download `google-services.json` into `app/google-services.json` and rebuild. The web client id (`client_type` 3) is read into the `web_client_id` string resource.
+5. Demo on a device with Google Play, using two Google accounts. A plain emulator often cannot complete Google sign-in.
+
 ## Building & running
 
 ```bash
