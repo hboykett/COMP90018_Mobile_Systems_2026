@@ -23,29 +23,27 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context,
-        initializerProvider: Provider<DatabaseInitializer>
-    ): FlashcardDatabase {
-        return Room.databaseBuilder(
-            context,
-            FlashcardDatabase::class.java,
-            "flashcard_db"
-        ).fallbackToDestructiveMigration()
-            .addCallback(object : RoomDatabase.Callback() {
-            override fun onOpen(db: SupportSQLiteDatabase) {
-                super.onOpen(db)
-                // Use the provider to avoid circular dependency
-                initializerProvider.get().seedDatabaseIfEmpty()
-            }
-        }).build()
-    }
+        initializerProvider: Provider<DatabaseInitializer>,
+    ): FlashcardDatabase =
+        Room
+            .databaseBuilder(
+                context,
+                FlashcardDatabase::class.java,
+                "flashcard_db",
+            ).fallbackToDestructiveMigration()
+            .addCallback(
+                object : RoomDatabase.Callback() {
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        super.onOpen(db)
+                        // Use the provider to avoid circular dependency
+                        initializerProvider.get().seedDatabaseIfEmpty()
+                    }
+                },
+            ).build()
 
     @Provides
-    fun provideCardDao(database: FlashcardDatabase): CardDao {
-        return database.cardDao()
-    }
+    fun provideCardDao(database: FlashcardDatabase): CardDao = database.cardDao()
 
     @Provides
-    fun provideDeckDao(database: FlashcardDatabase): DeckDao {
-        return database.deckDao()
-    }
+    fun provideDeckDao(database: FlashcardDatabase): DeckDao = database.deckDao()
 }

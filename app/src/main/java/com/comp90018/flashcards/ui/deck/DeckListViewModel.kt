@@ -13,22 +13,25 @@ import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
-class DeckListViewModel @Inject constructor(
-    private val repository: CardRepository
-) : ViewModel() {
+class DeckListViewModel
+    @Inject
+    constructor(
+        private val repository: CardRepository,
+    ) : ViewModel() {
+        val decks: StateFlow<List<DeckEntity>> =
+            repository
+                .getAllDecks()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val decks: StateFlow<List<DeckEntity>> = repository.getAllDecks()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        fun createDeck(name: String) {
+            viewModelScope.launch {
+                repository.insertDeck(DeckEntity(deckId = UUID.randomUUID().toString(), name = name))
+            }
+        }
 
-    fun createDeck(name: String) {
-        viewModelScope.launch {
-            repository.insertDeck(DeckEntity(deckId = UUID.randomUUID().toString(), name = name))
+        fun deleteDeck(deck: DeckEntity) {
+            viewModelScope.launch {
+                repository.deleteDeck(deck)
+            }
         }
     }
-
-    fun deleteDeck(deck: DeckEntity) {
-        viewModelScope.launch {
-            repository.deleteDeck(deck)
-        }
-    }
-}

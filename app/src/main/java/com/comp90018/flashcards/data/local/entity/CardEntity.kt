@@ -14,5 +14,5 @@ data class CardEntity(
     val back: String,
     val frontImageUri: String? = null,
     val backImageUri: String? = null,
-    val position: Int = 0
+    val position: Int = 0,
 )

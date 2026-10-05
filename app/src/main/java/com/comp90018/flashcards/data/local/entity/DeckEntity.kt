@@ -6,5 +6,5 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "decks")
 data class DeckEntity(
     @PrimaryKey val deckId: String,
-    val name: String
+    val name: String,
 )

@@ -13,5 +13,5 @@ data class SpacedRepetitionState(
     val easinessFactor: Float = 2.5f,
     val repetitionCount: Int = 0,
     val intervalDays: Int = 0,
-    val nextReviewDate: LocalDate = LocalDate.now()
+    val nextReviewDate: LocalDate = LocalDate.now(),
 )

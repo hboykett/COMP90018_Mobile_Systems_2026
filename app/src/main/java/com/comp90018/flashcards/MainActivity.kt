@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     val navController = rememberNavController()
                     NavHost(navController = navController, startDestination = "home") {
@@ -37,12 +37,12 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToManage = { deckId ->
                                     navController.navigate("deck_detail/$deckId")
-                                }
+                                },
                             )
                         }
                         composable(
                             route = "deck_detail/{deckId}",
-                            arguments = listOf(navArgument("deckId") { type = NavType.StringType })
+                            arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
                         ) {
                             DeckDetailScreen(
                                 onNavigateBack = { navController.popBackStack() },
@@ -51,30 +51,31 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToEditCard = { deckId, cardId ->
                                     navController.navigate("add_edit_card/$deckId?cardId=$cardId")
-                                }
+                                },
                             )
                         }
                         composable(
                             route = "add_edit_card/{deckId}?cardId={cardId}",
-                            arguments = listOf(
-                                navArgument("deckId") { type = NavType.StringType },
-                                navArgument("cardId") {
-                                    type = NavType.StringType
-                                    nullable = true
-                                    defaultValue = null
-                                }
-                            )
+                            arguments =
+                                listOf(
+                                    navArgument("deckId") { type = NavType.StringType },
+                                    navArgument("cardId") {
+                                        type = NavType.StringType
+                                        nullable = true
+                                        defaultValue = null
+                                    },
+                                ),
                         ) {
                             AddEditCardScreen(
-                                onNavigateBack = { navController.popBackStack() }
+                                onNavigateBack = { navController.popBackStack() },
                             )
                         }
                         composable(
                             route = "study/{deckId}",
-                            arguments = listOf(navArgument("deckId") { type = NavType.StringType })
+                            arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
                         ) {
                             StudyScreen(
-                                onNavigateBack = { navController.popBackStack() }
+                                onNavigateBack = { navController.popBackStack() },
                             )
                         }
                     }

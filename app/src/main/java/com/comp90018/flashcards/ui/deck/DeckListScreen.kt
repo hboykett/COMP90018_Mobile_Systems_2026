@@ -21,7 +21,7 @@ import com.comp90018.flashcards.data.local.entity.DeckEntity
 fun DeckListScreen(
     onNavigateToStudy: (String) -> Unit,
     onNavigateToManage: (String) -> Unit,
-    viewModel: DeckListViewModel = hiltViewModel()
+    viewModel: DeckListViewModel = hiltViewModel(),
 ) {
     val decks by viewModel.decks.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
@@ -33,21 +33,22 @@ fun DeckListScreen(
             FloatingActionButton(onClick = { showDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Deck")
             }
-        }
+        },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(decks) { deck ->
                 DeckItem(
                     deck = deck,
                     onStudyClick = { onNavigateToStudy(deck.deckId) },
                     onManageClick = { onNavigateToManage(deck.deckId) },
-                    onDeleteClick = { viewModel.deleteDeck(deck) }
+                    onDeleteClick = { viewModel.deleteDeck(deck) },
                 )
             }
         }
@@ -61,7 +62,7 @@ fun DeckListScreen(
                 OutlinedTextField(
                     value = newDeckName,
                     onValueChange = { newDeckName = it },
-                    label = { Text("Deck Name") }
+                    label = { Text("Deck Name") },
                 )
             },
             confirmButton = {
@@ -75,7 +76,7 @@ fun DeckListScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) { Text("Cancel") }
-            }
+            },
         )
     }
 }
@@ -85,19 +86,21 @@ fun DeckItem(
     deck: DeckEntity,
     onStudyClick: () -> Unit,
     onManageClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onStudyClick() }
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onStudyClick() },
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier =
+                Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = deck.name, style = MaterialTheme.typography.titleLarge)
