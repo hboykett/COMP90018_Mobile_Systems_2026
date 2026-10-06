@@ -5,15 +5,14 @@ import com.comp90018.flashcards.data.local.dao.DeckDao
 import com.comp90018.flashcards.data.local.entity.CardEntity
 import com.comp90018.flashcards.data.local.entity.DeckEntity
 import com.comp90018.flashcards.data.local.entity.SpacedRepetitionState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Helper class to seed the database with initial data.
+ * Inserts a sample deck the first time a signed-in user has no decks.
  */
 @Singleton
 class DatabaseInitializer
@@ -22,34 +21,33 @@ class DatabaseInitializer
         private val cardDao: CardDao,
         private val deckDao: DeckDao,
     ) {
-        fun seedDatabaseIfEmpty() {
-            CoroutineScope(Dispatchers.IO).launch {
-                if (cardDao.getCardCount() == 0) {
-                    val deckId = UUID.randomUUID().toString()
+        private val seedMutex = Mutex()
 
-                    val deck = DeckEntity(deckId = deckId, name = "Sample Deck")
-                    deckDao.insertDeck(deck)
-
-                    val cards =
-                        listOf(
-                            CardEntity(
-                                cardId = UUID.randomUUID().toString(),
-                                deckId = deckId,
-                                front = "What is Android?",
-                                back = "A mobile operating system.",
-                            ),
-                            CardEntity(
-                                cardId = UUID.randomUUID().toString(),
-                                deckId = deckId,
-                                front = "What is Kotlin?",
-                                back = "A modern programming language.",
-                            ),
-                        )
-
-                    cards.forEach { card ->
-                        cardDao.insertCard(card)
-                        cardDao.insertState(SpacedRepetitionState(cardId = card.cardId))
-                    }
+        suspend fun seedForUser(ownerId: String) {
+            seedMutex.withLock {
+                if (deckDao.countDecksForOwner(ownerId) > 0) {
+                    return
+                }
+                val deckId = UUID.randomUUID().toString()
+                deckDao.insertDeck(DeckEntity(deckId = deckId, name = "Sample Deck", ownerId = ownerId))
+                val cards =
+                    listOf(
+                        CardEntity(
+                            cardId = UUID.randomUUID().toString(),
+                            deckId = deckId,
+                            front = "What is Android?",
+                            back = "A mobile operating system.",
+                        ),
+                        CardEntity(
+                            cardId = UUID.randomUUID().toString(),
+                            deckId = deckId,
+                            front = "What is Kotlin?",
+                            back = "A modern programming language.",
+                        ),
+                    )
+                cards.forEach { card ->
+                    cardDao.insertCard(card)
+                    cardDao.insertState(SpacedRepetitionState(cardId = card.cardId))
                 }
             }
         }

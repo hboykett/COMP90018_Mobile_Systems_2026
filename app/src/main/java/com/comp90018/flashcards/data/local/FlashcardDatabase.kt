@@ -11,7 +11,7 @@ import com.comp90018.flashcards.data.local.entity.SpacedRepetitionState
 
 @Database(
     entities = [CardEntity::class, SpacedRepetitionState::class, DeckEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
