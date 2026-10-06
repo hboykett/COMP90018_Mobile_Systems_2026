@@ -2,6 +2,7 @@ package com.comp90018.flashcards.domain.repository
 
 import com.comp90018.flashcards.data.local.entity.CardEntity
 import com.comp90018.flashcards.data.local.entity.DeckEntity
+import com.comp90018.flashcards.domain.fsrs.FsrsCard
 import com.comp90018.flashcards.domain.model.CardWithState
 import com.comp90018.flashcards.domain.model.Rating
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +22,13 @@ interface CardRepository {
     // Card Operations
     fun getCardsByDeckId(deckId: String): Flow<List<CardEntity>>
 
-    fun getDueCards(deckId: String): Flow<List<CardWithState>>
+    /**
+     * Cards in [deckId] that are due for [userId] now, including cards they have never studied.
+     */
+    fun getDueCards(
+        userId: String,
+        deckId: String,
+    ): Flow<List<CardWithState>>
 
     suspend fun getCardById(cardId: String): CardEntity?
 
@@ -32,10 +39,12 @@ interface CardRepository {
     suspend fun deleteCard(card: CardEntity)
 
     /**
-     * Updates the spaced repetition state of a card based on the user's rating.
+     * Records that [userId] reviewed [cardId] with [rating], reschedules the card with FSRS
+     * and returns its new state.
      */
-    suspend fun updateCardState(
+    suspend fun reviewCard(
+        userId: String,
         cardId: String,
         rating: Rating,
-    )
+    ): FsrsCard
 }
