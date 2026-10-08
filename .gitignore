@@ -46,3 +46,13 @@ __pycache__/
 
 # Node.js dependencies
 node_modules/
+
+# Social API local credentials, databases, test tools and caches
+backend/secrets/
+backend/data/
+backend/.emulator-cache/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.ruff_cache/
