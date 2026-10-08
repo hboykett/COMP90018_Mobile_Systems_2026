@@ -30,6 +30,8 @@ import com.comp90018.flashcards.ui.deck.ChooseModeScreen
 import com.comp90018.flashcards.ui.deck.DeckDetailScreen
 import com.comp90018.flashcards.ui.deck.DeckListScreen
 import com.comp90018.flashcards.ui.deck.DeckPageScreen
+import com.comp90018.flashcards.ui.play.ChooseTimerScreen
+import com.comp90018.flashcards.ui.play.DuoScreen
 import com.comp90018.flashcards.ui.study.StudyScreen
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -86,6 +88,7 @@ private fun FlashcardNavHost(
             )
         }
         deckPlayRoutes(navController)
+        duoRoutes(navController)
         composable(
             route = "deck_detail/{deckId}",
             arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
@@ -154,6 +157,38 @@ private fun NavGraphBuilder.deckPlayRoutes(navController: NavHostController) {
             onPlaySolo = { deckId ->
                 navController.navigate("study/$deckId")
             },
+            onPlayDuo = { deckId ->
+                navController.navigate("choose_timer/$deckId")
+            },
+        )
+    }
+}
+
+/**
+ * The 2-player flow: pick the countdown, then play. Finishing a round returns to choose mode.
+ */
+private fun NavGraphBuilder.duoRoutes(navController: NavHostController) {
+    composable(
+        route = "choose_timer/{deckId}",
+        arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
+    ) {
+        ChooseTimerScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onStart = { deckId, seconds ->
+                navController.navigate("duo/$deckId/$seconds")
+            },
+        )
+    }
+    composable(
+        route = "duo/{deckId}/{seconds}",
+        arguments =
+            listOf(
+                navArgument("deckId") { type = NavType.StringType },
+                navArgument("seconds") { type = NavType.IntType },
+            ),
+    ) {
+        DuoScreen(
+            onNavigateBack = { navController.popBackStack("choose_mode/{deckId}", inclusive = false) },
         )
     }
 }

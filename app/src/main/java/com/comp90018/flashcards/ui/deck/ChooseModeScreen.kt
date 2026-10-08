@@ -38,9 +38,9 @@ private enum class PlayMode(
     val playerCount: Int,
     val isAvailable: Boolean,
 ) {
-    SOLO("Solo", "Study the deck on your own, at your own pace.", 1, isAvailable = true),
-    DUO("Duo", "Take turns with a friend and see who remembers more.", 2, isAvailable = false),
-    TWO_V_TWO("2v2", "Two teams of two race through the deck together.", 4, isAvailable = false),
+    SOLO("Solo", "Study the deck on your own, at your own pace", 1, isAvailable = true),
+    DUO("Duo", "One describes, one guesses, and a tilt marks each answer right or wrong", 2, isAvailable = true),
+    TWO_V_TWO("2v2", "Two teams of two race through the deck together", 4, isAvailable = false),
 }
 
 /**
@@ -52,6 +52,7 @@ private enum class PlayMode(
 fun ChooseModeScreen(
     onNavigateBack: () -> Unit,
     onPlaySolo: (String) -> Unit,
+    onPlayDuo: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DeckSummaryViewModel = hiltViewModel(),
 ) {
@@ -81,15 +82,18 @@ fun ChooseModeScreen(
                     .fillMaxSize()
                     .padding(padding)
                     .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         ) {
             PlayMode.entries.forEach { mode ->
                 PlayModeButton(
                     mode = mode,
+                    // Each option may shrink, so all three stay visible on a short landscape screen.
+                    modifier = Modifier.weight(1f, fill = false),
                     onClick = {
                         when (mode) {
                             PlayMode.SOLO -> onPlaySolo(viewModel.deckId)
-                            PlayMode.DUO, PlayMode.TWO_V_TWO -> Unit
+                            PlayMode.DUO -> onPlayDuo(viewModel.deckId)
+                            PlayMode.TWO_V_TWO -> Unit
                         }
                     },
                 )
@@ -102,12 +106,14 @@ fun ChooseModeScreen(
 private fun PlayModeButton(
     mode: PlayMode,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // The description is measured first, then the button takes up to BUTTON_HEIGHT of what is left.
         Button(
             onClick = onClick,
             enabled = mode.isAvailable,
-            modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT),
+            modifier = Modifier.weight(1f, fill = false).fillMaxWidth().height(BUTTON_HEIGHT),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -120,7 +126,7 @@ private fun PlayModeButton(
             }
         }
         Text(
-            text = if (mode.isAvailable) mode.description else "${mode.description} Coming soon.",
+            text = if (mode.isAvailable) mode.description else "${mode.description} (coming soon)",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),

@@ -1,14 +1,19 @@
 package com.comp90018.flashcards.ui.deck
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
@@ -58,51 +63,108 @@ fun DeckPageScreen(
             )
         },
     ) { padding ->
-        Column(
+        // The scope is used below (maxWidth and maxHeight pick the layout), so this is a false
+        // positive. Android Studio's inspection sometimes reports it from a stale analysis,
+        // while the project's lint (lintDebug) does not.
+        @Suppress("UnusedBoxWithConstraintsScope")
+        BoxWithConstraints(
             modifier =
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // The name and size fill the free space, so the buttons below sit within thumb reach.
-            Column(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = uiState.deckName.ifBlank { "Deck" },
-                    style = MaterialTheme.typography.displaySmall,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    text = cardCountLabel(uiState.cardCount),
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center,
-                )
+            val playDeck = { onPlay(viewModel.deckId) }
+            val editDeck = { onEdit(viewModel.deckId) }
+            // Too short to stack everything, so a wide screen puts the buttons beside the name.
+            if (maxWidth > maxHeight) {
+                LandscapeContent(uiState, onPlay = playDeck, onEdit = editDeck)
+            } else {
+                PortraitContent(uiState, onPlay = playDeck, onEdit = editDeck)
             }
+        }
+    }
+}
 
-            // A deck with no cards has nothing to play.
-            Button(
-                onClick = { onPlay(viewModel.deckId) },
-                enabled = uiState.cardCount > 0,
-                modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT),
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
-                Spacer(Modifier.width(8.dp))
-                Text("Play", style = MaterialTheme.typography.titleLarge)
-            }
+/** The name and size fill the free space, so the buttons below sit within thumb reach. */
+@Composable
+private fun PortraitContent(
+    uiState: DeckSummaryUiState,
+    onPlay: () -> Unit,
+    onEdit: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        DeckHeading(uiState, modifier = Modifier.weight(1f).fillMaxWidth())
+        DeckActions(uiState.cardCount > 0, onPlay, onEdit)
+    }
+}
 
-            OutlinedButton(
-                onClick = { onEdit(viewModel.deckId) },
-                modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT),
-            ) {
-                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
-                Spacer(Modifier.width(8.dp))
-                Text("Edit", style = MaterialTheme.typography.titleLarge)
-            }
+/** The name and size on the left, the buttons on the right. */
+@Composable
+private fun LandscapeContent(
+    uiState: DeckSummaryUiState,
+    onPlay: () -> Unit,
+    onEdit: () -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DeckHeading(uiState, modifier = Modifier.weight(1f).fillMaxHeight())
+        DeckActions(uiState.cardCount > 0, onPlay, onEdit, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun DeckHeading(
+    uiState: DeckSummaryUiState,
+    modifier: Modifier = Modifier,
+) {
+    // Scrolls as a last resort, so a very long name can never push the card count out of view.
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = uiState.deckName.ifBlank { "Deck" },
+            style = MaterialTheme.typography.displaySmall,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = cardCountLabel(uiState.cardCount),
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun DeckActions(
+    canPlay: Boolean,
+    onPlay: () -> Unit,
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // A deck with no cards has nothing to play.
+        Button(
+            onClick = onPlay,
+            enabled = canPlay,
+            modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT),
+        ) {
+            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+            Spacer(Modifier.width(8.dp))
+            Text("Play", style = MaterialTheme.typography.titleLarge)
+        }
+
+        OutlinedButton(
+            onClick = onEdit,
+            modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT),
+        ) {
+            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+            Spacer(Modifier.width(8.dp))
+            Text("Edit", style = MaterialTheme.typography.titleLarge)
         }
     }
 }
