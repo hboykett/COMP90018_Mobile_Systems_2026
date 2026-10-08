@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    function deckDoc(deckId) {
+      return get(/databases/$(database)/documents/decks/$(deckId)).data;
+    }
+
+    function canReadDeck(deck) {
+      return isSignedIn() &&
+        (deck.ownerId == request.auth.uid || deck.visibility == 'public');
+    }
+
+    // Cloud deck catalogue. Per-user study progress (SM-2 / FSRS) stays on-device.
+    match /decks/{deckId} {
+      allow read: if resource != null && canReadDeck(resource.data);
+
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.visibility in ['private', 'public']
+        && request.resource.data.keys().hasAll([
+          'name', 'ownerId', 'visibility', 'updatedAt', 'cardCount'
+        ]);
+
+      allow update: if isOwner(resource.data.ownerId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.visibility in ['private', 'public'];
+
+      allow delete: if isOwner(resource.data.ownerId);
+
+      match /cards/{cardId} {
+        allow read: if canReadDeck(deckDoc(deckId));
+
+        allow create, update: if isSignedIn()
+          && isOwner(deckDoc(deckId).ownerId)
+          && request.resource.data.keys().hasAll([
+            'front', 'back', 'position'
+          ]);
+
+        allow delete: if isSignedIn() && isOwner(deckDoc(deckId).ownerId);
+      }
+    }
+  }
+}
