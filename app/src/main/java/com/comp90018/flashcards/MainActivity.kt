@@ -3,15 +3,27 @@ package com.comp90018.flashcards
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.comp90018.flashcards.data.auth.AuthState
+import com.comp90018.flashcards.ui.auth.LoginScreen
+import com.comp90018.flashcards.ui.auth.SessionViewModel
 import com.comp90018.flashcards.ui.card.AddEditCardScreen
 import com.comp90018.flashcards.ui.deck.DeckDetailScreen
 import com.comp90018.flashcards.ui.deck.DeckListScreen
@@ -28,58 +40,108 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.background,
                 ) {
-                    val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "home") {
-                        composable("home") {
-                            DeckListScreen(
-                                onNavigateToStudy = { deckId ->
-                                    navController.navigate("study/$deckId")
-                                },
-                                onNavigateToManage = { deckId ->
-                                    navController.navigate("deck_detail/$deckId")
-                                }
-                            )
-                        }
-                        composable(
-                            route = "deck_detail/{deckId}",
-                            arguments = listOf(navArgument("deckId") { type = NavType.StringType })
-                        ) {
-                            DeckDetailScreen(
-                                onNavigateBack = { navController.popBackStack() },
-                                onNavigateToAddCard = { deckId ->
-                                    navController.navigate("add_edit_card/$deckId")
-                                },
-                                onNavigateToEditCard = { deckId, cardId ->
-                                    navController.navigate("add_edit_card/$deckId?cardId=$cardId")
-                                }
-                            )
-                        }
-                        composable(
-                            route = "add_edit_card/{deckId}?cardId={cardId}",
-                            arguments = listOf(
-                                navArgument("deckId") { type = NavType.StringType },
-                                navArgument("cardId") {
-                                    type = NavType.StringType
-                                    nullable = true
-                                    defaultValue = null
-                                }
-                            )
-                        ) {
-                            AddEditCardScreen(
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable(
-                            route = "study/{deckId}",
-                            arguments = listOf(navArgument("deckId") { type = NavType.StringType })
-                        ) {
-                            StudyScreen(
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                    }
+                    FlashcardApp()
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FlashcardApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
+    val authState by sessionViewModel.authState.collectAsState()
+    if (authState is AuthState.Loading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    val navController = rememberNavController()
+    val startDestination = if (authState is AuthState.SignedIn) "home" else "login"
+    AuthNavigationEffect(authState = authState, navController = navController)
+    FlashcardNavHost(navController = navController, startDestination = startDestination)
+}
+
+@Composable
+private fun FlashcardNavHost(
+    navController: NavHostController,
+    startDestination: String,
+) {
+    NavHost(navController = navController, startDestination = startDestination) {
+        composable("login") {
+            LoginScreen()
+        }
+        composable("home") {
+            DeckListScreen(
+                onNavigateToStudy = { deckId ->
+                    navController.navigate("study/$deckId")
+                },
+                onNavigateToManage = { deckId ->
+                    navController.navigate("deck_detail/$deckId")
+                },
+            )
+        }
+        composable(
+            route = "deck_detail/{deckId}",
+            arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
+        ) {
+            DeckDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddCard = { deckId ->
+                    navController.navigate("add_edit_card/$deckId")
+                },
+                onNavigateToEditCard = { deckId, cardId ->
+                    navController.navigate("add_edit_card/$deckId?cardId=$cardId")
+                },
+            )
+        }
+        composable(
+            route = "add_edit_card/{deckId}?cardId={cardId}",
+            arguments =
+                listOf(
+                    navArgument("deckId") { type = NavType.StringType },
+                    navArgument("cardId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+        ) {
+            AddEditCardScreen(
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "study/{deckId}",
+            arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
+        ) {
+            StudyScreen(
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuthNavigationEffect(
+    authState: AuthState,
+    navController: NavHostController,
+) {
+    LaunchedEffect(authState) {
+        val signedIn = authState is AuthState.SignedIn
+        val route = navController.currentDestination?.route
+        if (!signedIn && route != null && route != "login") {
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        } else if (signedIn && route == "login") {
+            navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+                launchSingleTop = true
             }
         }
     }

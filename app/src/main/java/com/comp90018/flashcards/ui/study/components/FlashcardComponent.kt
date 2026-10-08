@@ -24,45 +24,48 @@ fun FlashcardComponent(
     onFlip: () -> Unit,
     modifier: Modifier = Modifier,
     frontImageUri: String? = null,
-    backImageUri: String? = null
+    backImageUri: String? = null,
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
         animationSpec = tween(durationMillis = 500),
-        label = "cardFlip"
+        label = "cardFlip",
     )
 
     ElevatedCard(
         onClick = onFlip,
-        modifier = modifier
-            .graphicsLayer {
-                rotationY = rotation
-                cameraDistance = 12f * density
-            }
+        modifier =
+            modifier
+                .graphicsLayer {
+                    rotationY = rotation
+                    cameraDistance = 12f * density
+                },
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+            contentAlignment = Alignment.Center,
         ) {
             if (rotation <= 90f) {
                 // Front content
                 CardContent(
                     text = front,
                     imageUri = frontImageUri,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 )
             } else {
                 // Back content (mirrored to look correct after flip)
                 CardContent(
                     text = back,
                     imageUri = backImageUri,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            rotationY = 180f
-                        }
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                rotationY = 180f
+                            },
                 )
             }
         }
@@ -73,18 +76,18 @@ fun FlashcardComponent(
 private fun CardContent(
     text: String,
     imageUri: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier,
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         // TODO: Implement image support using imageUri if needed
         // For now, just show the text.
         Text(
             text = text,
             style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
     }
 }

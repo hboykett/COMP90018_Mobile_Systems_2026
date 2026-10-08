@@ -16,12 +16,13 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface CardDao {
-
-    @Query("""
+    @Query(
+        """
         SELECT * FROM cards 
         JOIN spaced_repetition_states ON cards.cardId = spaced_repetition_states.cardId 
         WHERE cards.deckId = :deckId
-    """)
+    """,
+    )
     fun getCardsWithState(deckId: String): Flow<Map<CardEntity, SpacedRepetitionState>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

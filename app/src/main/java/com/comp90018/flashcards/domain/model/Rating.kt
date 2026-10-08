@@ -4,5 +4,5 @@ enum class Rating {
     AGAIN,
     HARD,
     GOOD,
-    EASY
+    EASY,
 }

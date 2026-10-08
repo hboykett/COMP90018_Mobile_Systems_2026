@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.comp90018.flashcards.domain.model.Rating
@@ -40,19 +39,20 @@ import com.comp90018.flashcards.ui.study.utils.TiltFlipDetector
 @Composable
 fun StudyScreen(
     onNavigateBack: () -> Unit,
-    viewModel: StudyViewModel = hiltViewModel()
+    viewModel: StudyViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
     // Initialize TiltFlipDetector to flip the card when the device is flipped face down
     DisposableEffect(viewModel) {
-        val detector = TiltFlipDetector(context) {
-            // Only trigger flip if the card is not already flipped
-            if (!viewModel.uiState.value.isFlipped && !viewModel.uiState.value.isSessionComplete) {
-                viewModel.flipCard()
+        val detector =
+            TiltFlipDetector(context) {
+                // Only trigger flip if the card is not already flipped
+                if (!viewModel.uiState.value.isFlipped && !viewModel.uiState.value.isSessionComplete) {
+                    viewModel.flipCard()
+                }
             }
-        }
         detector.start()
         onDispose {
             detector.stop()
@@ -67,19 +67,20 @@ fun StudyScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
                         )
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (uiState.isSessionComplete) {
                 SessionCompleteContent(onNavigateBack = onNavigateBack)
@@ -87,7 +88,7 @@ fun StudyScreen(
                 StudyContent(
                     uiState = uiState,
                     onFlip = viewModel::flipCard,
-                    onRate = viewModel::rateCard
+                    onRate = viewModel::rateCard,
                 )
             }
         }
@@ -98,30 +99,34 @@ fun StudyScreen(
 private fun StudyContent(
     uiState: StudyUiState,
     onFlip: () -> Unit,
-    onRate: (Rating) -> Unit
+    onRate: (Rating) -> Unit,
 ) {
     val currentCard = uiState.cards.getOrNull(uiState.currentIndex)
-    val progress = if (uiState.cards.isNotEmpty()) {
-        (uiState.currentIndex.toFloat()) / uiState.cards.size
-    } else 0f
+    val progress =
+        if (uiState.cards.isNotEmpty()) {
+            (uiState.currentIndex.toFloat()) / uiState.cards.size
+        } else {
+            0f
+        }
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         LinearProgressIndicator(
             progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
             color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
         )
-        
+
         Text(
             text = "Card ${uiState.currentIndex + 1} of ${uiState.cards.size}",
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(vertical = 8.dp),
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -134,9 +139,10 @@ private fun StudyContent(
                 onFlip = onFlip,
                 frontImageUri = currentCard.card.frontImageUri,
                 backImageUri = currentCard.card.backImageUri,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -144,9 +150,10 @@ private fun StudyContent(
             if (!uiState.isFlipped) {
                 Button(
                     onClick = onFlip,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 32.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 32.dp),
                 ) {
                     Text("Flip")
                 }
@@ -161,38 +168,37 @@ private fun StudyContent(
 }
 
 @Composable
-private fun RatingButtons(
-    onRate: (Rating) -> Unit
-) {
+private fun RatingButtons(onRate: (Rating) -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 32.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         RatingButton(
             text = "Again",
             color = Color(0xFFEF5350), // Red
             onClick = { onRate(Rating.AGAIN) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         RatingButton(
             text = "Hard",
             color = Color(0xFFFFA726), // Orange
             onClick = { onRate(Rating.HARD) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         RatingButton(
             text = "Good",
             color = Color(0xFF66BB6A), // Green
             onClick = { onRate(Rating.GOOD) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         RatingButton(
             text = "Easy",
             color = Color(0xFF42A5F5), // Blue
             onClick = { onRate(Rating.EASY) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -202,29 +208,27 @@ private fun RatingButton(
     text: String,
     color: Color,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(containerColor = color),
-        modifier = modifier
+        modifier = modifier,
     ) {
         Text(text, style = MaterialTheme.typography.labelSmall)
     }
 }
 
 @Composable
-private fun SessionCompleteContent(
-    onNavigateBack: () -> Unit
-) {
+private fun SessionCompleteContent(onNavigateBack: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Session Finished!",
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineMedium,
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onNavigateBack) {

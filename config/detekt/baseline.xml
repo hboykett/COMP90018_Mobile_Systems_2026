@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>LambdaParameterInRestartableEffect:AddEditCardScreen.kt$onNavigateBack</ID>
+    <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
+    <ID>LongParameterList:FlashcardComponent.kt$( front: String, back: String, isFlipped: Boolean, onFlip: () -&gt; Unit, modifier: Modifier = Modifier, frontImageUri: String? = null, backImageUri: String? = null, )</ID>
+    <ID>MaxLineLength:SpacedRepetitionLogicTest.kt$SpacedRepetitionLogicTest$// nextEF for GOOD (q=4): 2.0 + (0.1 - (5-4) * (0.08 + (5-4) * 0.02)) = 2.0 + (0.1 - 1 * (0.08 + 0.02)) = 2.0 + 0 = 2.0</ID>
+    <ID>ModifierMissing:AddEditCardScreen.kt$AddEditCardScreen</ID>
+    <ID>ModifierMissing:DeckDetailScreen.kt$CardItem</ID>
+    <ID>ModifierMissing:DeckDetailScreen.kt$DeckDetailScreen</ID>
+    <ID>ModifierMissing:DeckListScreen.kt$DeckItem</ID>
+    <ID>ModifierMissing:DeckListScreen.kt$DeckListScreen</ID>
+    <ID>ModifierMissing:StudyScreen.kt$StudyScreen</ID>
+    <ID>UnusedParameter:FlashcardComponent.kt$imageUri: String?</ID>
+    <ID>UnusedPrivateProperty:SpacedRepetitionLogic.kt$SpacedRepetitionLogic$private const val INITIAL_EFACTOR = 2.5f</ID>
+  </CurrentIssues>
+</SmellBaseline>

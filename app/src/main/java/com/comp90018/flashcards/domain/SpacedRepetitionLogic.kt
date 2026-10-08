@@ -14,7 +14,7 @@ object SpacedRepetitionLogic {
         val easinessFactor: Float,
         val repetitionCount: Int,
         val intervalDays: Int,
-        val nextReviewDate: LocalDate
+        val nextReviewDate: LocalDate,
     )
 
     fun calculateNextState(
@@ -22,15 +22,16 @@ object SpacedRepetitionLogic {
         currentRepetition: Int,
         currentInterval: Int,
         rating: Rating,
-        currentDate: LocalDate = LocalDate.now()
+        currentDate: LocalDate = LocalDate.now(),
     ): State {
         // Map Rating to Quality (0-5)
-        val q = when (rating) {
-            Rating.AGAIN -> 0
-            Rating.HARD -> 3
-            Rating.GOOD -> 4
-            Rating.EASY -> 5
-        }
+        val q =
+            when (rating) {
+                Rating.AGAIN -> 0
+                Rating.HARD -> 3
+                Rating.GOOD -> 4
+                Rating.EASY -> 5
+            }
 
         // Calculate next E-Factor
         var nextEF = currentEF + (0.1f - (5 - q) * (0.08f + (5 - q) * 0.02f))
@@ -45,18 +46,19 @@ object SpacedRepetitionLogic {
             nextInterval = 1
         } else {
             nextRepetition = currentRepetition + 1
-            nextInterval = when (nextRepetition) {
-                1 -> 1
-                2 -> 6
-                else -> Math.round(currentInterval * nextEF)
-            }
+            nextInterval =
+                when (nextRepetition) {
+                    1 -> 1
+                    2 -> 6
+                    else -> Math.round(currentInterval * nextEF)
+                }
         }
 
         return State(
             easinessFactor = nextEF,
             repetitionCount = nextRepetition,
             intervalDays = nextInterval,
-            nextReviewDate = currentDate.plusDays(nextInterval.toLong())
+            nextReviewDate = currentDate.plusDays(nextInterval.toLong()),
         )
     }
 }
