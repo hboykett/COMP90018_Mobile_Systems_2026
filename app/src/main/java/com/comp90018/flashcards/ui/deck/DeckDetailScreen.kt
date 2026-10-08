@@ -12,6 +12,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,6 +31,7 @@ fun DeckDetailScreen(
 ) {
     val deck by viewModel.deck.collectAsState()
     val cards by viewModel.cards.collectAsState()
+    var cardToDelete by remember { mutableStateOf<CardEntity?>(null) }
 
     Scaffold(
         topBar = {
@@ -58,10 +62,21 @@ fun DeckDetailScreen(
                 CardItem(
                     card = card,
                     onEditClick = { onNavigateToEditCard(viewModel.deckId, card.cardId) },
-                    onDeleteClick = { viewModel.deleteCard(card) },
+                    onDeleteClick = { cardToDelete = card },
                 )
             }
         }
+    }
+
+    cardToDelete?.let { card ->
+        ConfirmDeleteDialog(
+            message = "Are you sure you want to delete this card?",
+            onConfirm = {
+                viewModel.deleteCard(card)
+                cardToDelete = null
+            },
+            onDismiss = { cardToDelete = null },
+        )
     }
 }
 

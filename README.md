@@ -20,6 +20,22 @@ Authentication is Firebase Auth. Users can continue with Google, or register and
 4. Download `google-services.json` into `app/google-services.json` and rebuild. The web client id (`client_type` 3) is read into the `web_client_id` string resource.
 5. Demo on a device with Google Play, using two Google accounts. A plain emulator often cannot complete Google sign-in.
 
+## Cloud decks (Firestore)
+
+Shared deck storage uses **Cloud Firestore** in the same Firebase project as Auth (`com-comp90018-flashcards`). Local Room remains the source of truth on device; async sync and upload/download UI are separate Stage 2 issues.
+
+Schema, security rules, and provisioning steps: [docs/cloud-deck-schema.md](docs/cloud-deck-schema.md).
+
+1. In the Firebase Console, create a Firestore database for the project (if it does not exist yet).
+2. Install the [Firebase CLI](https://firebase.google.com/docs/cli), then from the repo root:
+
+```bash
+firebase use com-comp90018-flashcards
+firebase deploy --only firestore:rules,firestore:indexes
+```
+
+Rules and indexes live in `firestore.rules` and `firestore.indexes.json`. The Android client depends on `firebase-firestore` and exposes a thin `DeckRemoteDataSource` under `data/remote` (no sync loop yet).
+
 ## Building & running
 
 ```bash
