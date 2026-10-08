@@ -35,3 +35,14 @@ firestore-debug.log
 
 # Android Profiling
 *.hprof
+
+*.venv
+
+.node_modules/
+
+# Python bytecode caches
+__pycache__/
+*.py[cod]
+
+# Node.js dependencies
+node_modules/
