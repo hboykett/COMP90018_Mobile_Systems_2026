@@ -27,6 +27,7 @@ fun DeckListScreen(
     val displayName by viewModel.displayName.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var newDeckName by remember { mutableStateOf("") }
+    var deckToDelete by remember { mutableStateOf<DeckEntity?>(null) }
 
     Scaffold(
         topBar = {
@@ -51,7 +52,7 @@ fun DeckListScreen(
                     deck = deck,
                     onStudyClick = { onNavigateToStudy(deck.deckId) },
                     onManageClick = { onNavigateToManage(deck.deckId) },
-                    onDeleteClick = { viewModel.deleteDeck(deck) },
+                    onDeleteClick = { deckToDelete = deck },
                 )
             }
         }
@@ -69,6 +70,17 @@ fun DeckListScreen(
                 }
             },
             onDismiss = { showDialog = false },
+        )
+    }
+
+    deckToDelete?.let { deck ->
+        ConfirmDeleteDialog(
+            message = "Are you sure you want to delete this deck?",
+            onConfirm = {
+                viewModel.deleteDeck(deck)
+                deckToDelete = null
+            },
+            onDismiss = { deckToDelete = null },
         )
     }
 }
