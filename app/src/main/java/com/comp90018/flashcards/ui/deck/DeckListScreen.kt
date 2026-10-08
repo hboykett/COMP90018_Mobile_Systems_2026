@@ -19,7 +19,7 @@ import com.comp90018.flashcards.data.local.entity.DeckEntity
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeckListScreen(
-    onNavigateToStudy: (String) -> Unit,
+    onNavigateToDeck: (String) -> Unit,
     onNavigateToManage: (String) -> Unit,
     viewModel: DeckListViewModel = hiltViewModel(),
 ) {
@@ -49,7 +49,7 @@ fun DeckListScreen(
             items(decks) { deck ->
                 DeckItem(
                     deck = deck,
-                    onStudyClick = { onNavigateToStudy(deck.deckId) },
+                    onOpenClick = { onNavigateToDeck(deck.deckId) },
                     onManageClick = { onNavigateToManage(deck.deckId) },
                     onDeleteClick = { viewModel.deleteDeck(deck) },
                 )
@@ -128,7 +128,7 @@ private fun CreateDeckDialog(
 @Composable
 fun DeckItem(
     deck: DeckEntity,
-    onStudyClick: () -> Unit,
+    onOpenClick: () -> Unit,
     onManageClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
@@ -136,7 +136,7 @@ fun DeckItem(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable { onStudyClick() },
+                .clickable { onOpenClick() },
     ) {
         Row(
             modifier =
