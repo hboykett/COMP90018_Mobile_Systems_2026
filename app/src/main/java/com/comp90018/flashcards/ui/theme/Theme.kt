@@ -284,7 +284,7 @@ fun AppTheme(
           val context = LocalContext.current
           if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
       }
-      
+
       darkTheme -> darkScheme
       else -> lightScheme
   }
@@ -317,8 +317,6 @@ fun rememberDarkThemeFromLightSensor(
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent) {
                 val lux = event.values[0]
-                // Hysteresis: only change state outside the dead zone,
-                // so it doesn't flicker around a single threshold
                 if (lux < darkBelowLux) isDark = true
                 else if (lux > lightAboveLux) isDark = false
             }
