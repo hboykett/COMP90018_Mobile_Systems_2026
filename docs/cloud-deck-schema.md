@@ -2,7 +2,7 @@
 
 **Backend:** Cloud Firestore in Firebase project `com-comp90018-flashcards`  
 **Auth:** Firebase Auth (`uid` = deck `ownerId`, same as local Room)  
-**Spike outcome:** Firebase (Auth already shipped in PR #48); Firestore for shared deck data — not Azure or a custom API.
+**Architecture:** Firebase Auth and Cloud Firestore, with direct Android deck access and a Python social API for profiles, friendships, and share permissions. See [backend/README.md](../backend/README.md).
 
 This document is the missing write-up for [SPIKE #17](https://github.com/hboykett/COMP90018_Mobile_Systems_2026/issues/17) and the schema provisioned for [#18](https://github.com/hboykett/COMP90018_Mobile_Systems_2026/issues/18).
 
@@ -17,11 +17,15 @@ This document is the missing write-up for [SPIKE #17](https://github.com/hboyket
 
 Per-user spaced-repetition progress stays in **local Room** until a later sync design. Do not store SM-2 / FSRS fields on shared deck documents.
 
+The table above describes the original #18 scope. The social API now adds friend sharing without changing the deck/card fields or the `private` / `public` visibility values.
+
 ## Collections
 
 ```text
 decks/{deckId}
   cards/{cardId}
+  shares/{recipientFirebaseUid}  # server-managed permissions
+social_backends/{namespace}/...  # profiles, friendships, private ID mappings
 ```
 
 ### `decks/{deckId}`
@@ -55,7 +59,10 @@ Committed in [`firestore.rules`](../firestore.rules):
 - Signed-in users only (no anonymous access).
 - Owner can create / update / delete their decks and cards.
 - Any signed-in user can read decks (and their cards) when `visibility == "public"`.
-- Private decks are readable only by the owner.
+- Private decks are readable by the owner or an explicitly shared recipient whose friendship is still accepted.
+- Sharing grants read-only access to both the deck and its cards. Only the API may issue or revoke grants, after checking ownership and friendship.
+- Removing a friendship revokes private access; a new friendship requires a new share. Public access remains available to all signed-in users.
+- Social documents and share grants cannot be read or written directly by clients.
 - `ownerId` cannot be changed on update.
 
 ## Indexes
@@ -64,6 +71,11 @@ Committed in [`firestore.indexes.json`](../firestore.indexes.json):
 
 - `visibility` + `updatedAt` — public catalogue
 - `ownerId` + `updatedAt` — “my cloud decks”
+- `sender_hash` + `status` + `created_at` + `id` — outgoing friend requests
+- `recipient_hash` + `status` + `created_at` + `id` — incoming friend requests
+- `members` (array contains) + `status` + `updated_at` + `id` — accepted friends
+
+All five indexes and both access policies are deployed through the root `firebase.json`. Backend emulator tests also use this configuration; no separate backend rules/index files should be deployed.
 
 ## Provisioning checklist
 
@@ -82,3 +94,4 @@ firebase deploy --only firestore:rules,firestore:indexes
 
 - Dependency: `com.google.firebase:firebase-firestore` (Firebase BOM already in the app).
 - Models / stub: `com.comp90018.flashcards.data.remote` — CRUD helpers only; no offline sync loop yet.
+- Existing `getDeck(deckId)` and `listCards(deckId)` can read explicitly shared private decks after a grant is issued through the API. Friends/sharing UI, shared-deck discovery, and HTTP integration remain to be connected.
