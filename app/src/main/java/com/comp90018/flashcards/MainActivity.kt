@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,8 +26,12 @@ import com.comp90018.flashcards.data.auth.AuthState
 import com.comp90018.flashcards.ui.auth.LoginScreen
 import com.comp90018.flashcards.ui.auth.SessionViewModel
 import com.comp90018.flashcards.ui.card.AddEditCardScreen
+import com.comp90018.flashcards.ui.deck.ChooseModeScreen
 import com.comp90018.flashcards.ui.deck.DeckDetailScreen
 import com.comp90018.flashcards.ui.deck.DeckListScreen
+import com.comp90018.flashcards.ui.deck.DeckPageScreen
+import com.comp90018.flashcards.ui.play.ChooseTimerScreen
+import com.comp90018.flashcards.ui.play.DuoScreen
 import com.comp90018.flashcards.ui.study.StudyScreen
 import com.comp90018.flashcards.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -75,14 +80,16 @@ private fun FlashcardNavHost(
         }
         composable("home") {
             DeckListScreen(
-                onNavigateToStudy = { deckId ->
-                    navController.navigate("study/$deckId")
+                onNavigateToDeck = { deckId ->
+                    navController.navigate("deck/$deckId")
                 },
                 onNavigateToManage = { deckId ->
                     navController.navigate("deck_detail/$deckId")
                 },
             )
         }
+        deckPlayRoutes(navController)
+        duoRoutes(navController)
         composable(
             route = "deck_detail/{deckId}",
             arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
@@ -121,6 +128,69 @@ private fun FlashcardNavHost(
                 onNavigateBack = { navController.popBackStack() },
             )
         }
+    }
+}
+
+/**
+ * The deck page and the choose-mode page that follows it when the user taps Play.
+ */
+private fun NavGraphBuilder.deckPlayRoutes(navController: NavHostController) {
+    composable(
+        route = "deck/{deckId}",
+        arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
+    ) {
+        DeckPageScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onPlay = { deckId ->
+                navController.navigate("choose_mode/$deckId")
+            },
+            onEdit = { deckId ->
+                navController.navigate("deck_detail/$deckId")
+            },
+        )
+    }
+    composable(
+        route = "choose_mode/{deckId}",
+        arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
+    ) {
+        ChooseModeScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onPlaySolo = { deckId ->
+                navController.navigate("study/$deckId")
+            },
+            onPlayDuo = { deckId ->
+                navController.navigate("choose_timer/$deckId")
+            },
+        )
+    }
+}
+
+/**
+ * The 2-player flow: pick the countdown, then play. Finishing a round returns to choose mode.
+ */
+private fun NavGraphBuilder.duoRoutes(navController: NavHostController) {
+    composable(
+        route = "choose_timer/{deckId}",
+        arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
+    ) {
+        ChooseTimerScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onStart = { deckId, seconds ->
+                navController.navigate("duo/$deckId/$seconds")
+            },
+        )
+    }
+    composable(
+        route = "duo/{deckId}/{seconds}",
+        arguments =
+            listOf(
+                navArgument("deckId") { type = NavType.StringType },
+                navArgument("seconds") { type = NavType.IntType },
+            ),
+    ) {
+        DuoScreen(
+            onNavigateBack = { navController.popBackStack("choose_mode/{deckId}", inclusive = false) },
+        )
     }
 }
 
