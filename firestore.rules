@@ -43,6 +43,7 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.resource.data.ownerId == request.auth.uid
+        && !request.resource.data.keys().hasAny(['copiedFrom'])
         && request.resource.data.visibility in ['private', 'public']
         && request.resource.data.keys().hasAll([
           'name', 'ownerId', 'visibility', 'updatedAt', 'cardCount'
@@ -50,6 +51,7 @@ service cloud.firestore {
 
       allow update: if isOwner(resource.data.ownerId)
         && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.get('copiedFrom', null) == resource.data.get('copiedFrom', null)
         && request.resource.data.visibility in ['private', 'public'];
 
       allow delete: if isOwner(resource.data.ownerId);

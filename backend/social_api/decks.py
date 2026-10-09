@@ -1,6 +1,16 @@
+import json
+from datetime import UTC, datetime
+from uuid import uuid4
+
+from pydantic import ValidationError
+
 from social_api.database import Database
 from social_api.errors import ApiError
+from social_api.models import CardContent, DeckCopyInput
 from social_api.service import now
+
+MAX_COPY_CARDS = 400
+MAX_COPY_CONTENT_BYTES = 4 * 1024 * 1024
 
 
 class DeckService:
@@ -65,6 +75,103 @@ class DeckService:
 
         self.database.run(revoke)
 
+    def set_published(self, uid: str, deck_id: str, published: bool):
+        ref = self.decks.document(deck_id)
+        visibility = "public" if published else "private"
+
+        def update(transaction):
+            deck = self._owned_deck(ref, uid, transaction)
+            if deck.get("visibility") != visibility:
+                changed = {"visibility": visibility, "updatedAt": datetime.now(UTC)}
+                transaction.update(ref, changed)
+                deck = {**deck, **changed}
+            return {**deck, "deckId": deck_id}
+
+        return self.database.run(update)
+
+    def save_copy(self, uid: str, deck_id: str, body: DeckCopyInput):
+        source_ref = self.decks.document(deck_id)
+        copy_ref = self.decks.document(str(uuid4()))
+        request_ref = self.database.copy_requests.document(
+            f"{self.database.subject_hash(uid)}_{body.request_id}"
+        )
+
+        def copy(transaction):
+            previous = request_ref.get(transaction=transaction).to_dict()
+            if previous is not None:
+                if previous["source_deck_id"] != deck_id or previous["name"] != body.name:
+                    raise ApiError(
+                        409, "copy_request_conflict", "Use a new request ID for a different copy."
+                    )
+                saved = (
+                    self.decks.document(previous["deck_id"]).get(transaction=transaction).to_dict()
+                )
+                if (
+                    saved is None
+                    or saved.get("ownerId") != uid
+                    or saved.get("copiedFrom") != previous["copied_from"]
+                ):
+                    raise ApiError(410, "copy_deleted", "This copy was deleted. Start a new copy.")
+                # A completed copy belongs to its recipient even after source access is revoked.
+                return {**saved, "deckId": previous["deck_id"]}
+
+            source = self._readable_deck(source_ref, uid, transaction)
+            if not isinstance(source.get("name"), str):
+                raise ApiError(409, "invalid_source_deck", "The source deck needs a valid name.")
+            timestamp = datetime.now(UTC)
+            copied_from = {
+                "deckId": deck_id,
+                "ownerId": source["ownerId"],
+                "copiedAt": timestamp,
+            }
+            deck = {
+                "name": body.name if body.name is not None else source["name"],
+                "ownerId": uid,
+                "visibility": "private",
+                "updatedAt": timestamp,
+                "copiedFrom": copied_from,
+            }
+            content_bytes = len(json.dumps(deck, default=str, ensure_ascii=False).encode("utf-8"))
+            cards = []
+            # Query all cards, including malformed rows without a position. Ordering by
+            # position here would silently omit those rows instead of rejecting the copy.
+            query = source_ref.collection("cards").order_by("__name__").limit(MAX_COPY_CARDS + 1)
+            for document in query.stream(transaction=transaction):
+                if len(cards) >= MAX_COPY_CARDS:
+                    raise ApiError(413, "deck_too_large", "Copy supports up to 400 cards per deck.")
+                try:
+                    card = CardContent.model_validate(document.to_dict()).model_dump(
+                        exclude_unset=True
+                    )
+                except ValidationError as error:
+                    raise ApiError(
+                        409, "invalid_source_deck", "Fix invalid cards in the source deck first."
+                    ) from error
+                content_bytes += len(json.dumps(card, ensure_ascii=False).encode("utf-8"))
+                if content_bytes > MAX_COPY_CONTENT_BYTES:
+                    raise ApiError(413, "deck_too_large", "Copied content must fit within 4 MiB.")
+                cards.append(card)
+            if content_bytes > MAX_COPY_CONTENT_BYTES:
+                raise ApiError(413, "deck_too_large", "Copied content must fit within 4 MiB.")
+            deck["cardCount"] = len(cards)
+            # Access, source cards, destination, and retry receipt share one transaction.
+            # No progress, grants, unknown fields, or partial deck can escape this commit.
+            transaction.create(copy_ref, deck)
+            for card in cards:
+                transaction.create(copy_ref.collection("cards").document(str(uuid4())), card)
+            transaction.create(
+                request_ref,
+                {
+                    "source_deck_id": deck_id,
+                    "name": body.name,
+                    "deck_id": copy_ref.id,
+                    "copied_from": copied_from,
+                },
+            )
+            return {**deck, "deckId": copy_ref.id}
+
+        return self.database.run(copy)
+
     def get_deck(self, uid: str, deck_id: str):
         def read(transaction):
             deck = self._readable_deck(self.decks.document(deck_id), uid, transaction)
@@ -101,7 +208,7 @@ class DeckService:
     def _owned_deck(self, ref, uid, transaction):
         deck = self._deck(ref, transaction)
         if deck.get("ownerId") != uid:
-            raise ApiError(403, "owner_required", "Only the deck owner can change sharing.")
+            raise ApiError(403, "owner_required", "Only the deck owner can perform this action.")
         return deck
 
     def _recipient(self, recipient_id, transaction):

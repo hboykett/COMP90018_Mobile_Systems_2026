@@ -118,3 +118,11 @@ Use the resulting HTTPS URL as the base URL when wiring Android's social HTTP cl
 If startup fails, inspect **Cloud Run → social-api → Logs**. Common causes are a missing secret version, missing Firestore/Auth permissions, the wrong database/project, or a changed identity key.
 
 For future code updates, rerun step 5 with the same project, region, namespace, service accounts, and secret version. Rebuild/redeploy periodically to incorporate base-image security updates. Firestore rules/index changes are deployed separately with step 4.
+
+## Updating an existing service for Publish and Save-a-copy
+
+Deploy the updated root Firestore rules (step 4) before deploying API version `0.2.0`. These rules protect the new `copiedFrom` metadata from client creation or edits and remain compatible with existing decks and merge writes. The five indexes are unchanged, and no data migration is required.
+
+Update the existing Cloud Run service rather than creating another service. For the current Melbourne deployment, the service name is `comp90018-mobile-systems-2026` and the region is `australia-southeast2`; substitute those for the example service name and region above. Keep the existing runtime/build identities, database, namespace, and `SOCIAL_IDENTITY_HMAC_KEY`. If using a repository-connected Cloud Build trigger, build the commit containing this change with its existing backend Dockerfile configuration.
+
+After deployment, `/openapi.json` should report version `0.2.0` and include `/v1/decks/{deck_id}/publish` and `/v1/decks/{deck_id}/copies`. Use the authenticated [two-user walkthrough](README.md#two-user-walkthrough) to verify sharing, copying, publishing, and revocation on disposable test decks. Emulator tests do not verify deployed credentials or IAM permissions.

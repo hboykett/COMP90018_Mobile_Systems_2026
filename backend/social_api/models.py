@@ -68,6 +68,23 @@ class DeckShare(BaseModel):
     created_at: str
 
 
+class DeckCopyInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # The client keeps this UUID when retrying one Save-a-copy action.
+    request_id: UUID
+    name: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+        | None
+    ) = None
+
+
+class DeckSource(BaseModel):
+    deckId: UUID
+    ownerId: str
+    copiedAt: datetime
+
+
 class Deck(BaseModel):
     # Keep the Android/Firestore names and ownership convention.
     deckId: UUID
@@ -76,15 +93,24 @@ class Deck(BaseModel):
     visibility: Literal["private", "public"]
     updatedAt: datetime
     cardCount: int
+    copiedFrom: DeckSource | None = None
 
 
-class Card(BaseModel):
-    cardId: UUID
+class CardContent(BaseModel):
+    model_config = ConfigDict(strict=True)
+
     front: str
     back: str
     position: int
     frontImageUri: str | None = None
     backImageUri: str | None = None
+
+
+class Card(CardContent):
+    # UUIDs in HTTP responses are parsed from document ID strings.
+    model_config = ConfigDict(strict=False)
+
+    cardId: UUID
 
 
 class ErrorDetail(BaseModel):

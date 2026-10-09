@@ -1,7 +1,12 @@
+import base64
+import json
 import os
+import time
+from datetime import UTC, datetime
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -89,3 +94,88 @@ def respond(client, request_id, user="bob", action="accept"):
         headers=headers(user),
         json={"action": action},
     )
+
+
+def rules_headers(user):
+    if user is None:
+        return {}
+    # Unsigned JWTs are accepted ONLY by the local Firestore emulator. The API's
+    # production verifier is unchanged; no service credential bypasses these rules.
+    uid = f"firebase-uid-{user}"
+    payload = {
+        "sub": uid,
+        "user_id": uid,
+        "aud": "demo-social-api",
+        "iss": "https://securetoken.google.com/demo-social-api",
+        "iat": int(time.time()),
+        "exp": int(time.time()) + 3600,
+        "auth_time": int(time.time()),
+        "firebase": {"sign_in_provider": "custom", "identities": {}},
+    }
+
+    def encode(value):
+        return base64.urlsafe_b64encode(json.dumps(value).encode()).rstrip(b"=").decode()
+
+    token = f"{encode({'alg': 'none', 'typ': 'JWT'})}.{encode(payload)}."
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def raw_client(settings):
+    # The settings fixture requires a loopback emulator before constructing this URL.
+    url = (
+        f"http://{os.environ['FIRESTORE_EMULATOR_HOST']}/v1/projects/"
+        f"{settings.firebase_project_id}/databases/(default)/documents/"
+    )
+    with httpx.Client(base_url=url, trust_env=False, timeout=15) as client:
+        yield client
+
+
+@pytest.fixture
+def deck(database):
+    ref = database.client.collection("decks").document(str(uuid4()))
+    ref.set(
+        {
+            "name": "Shared vocabulary",
+            "ownerId": "firebase-uid-alice",
+            "visibility": "private",
+            "updatedAt": datetime.now(UTC),
+            "cardCount": 1,
+        }
+    )
+    ref.collection("cards").document(str(uuid4())).set(
+        {"front": "hello", "back": "bonjour", "position": 0, "frontImageUri": "image://front"}
+    )
+    yield ref
+    for collection in ("cards", "shares"):
+        for document in ref.collection(collection).stream():
+            document.reference.delete()
+    ref.delete()
+
+
+def make_friends(client, profiles, sender="alice", recipient="bob"):
+    request = send(client, profiles, sender, recipient)
+    assert request.status_code == 200
+    result = respond(client, request.json()["id"], user=recipient)
+    assert result.status_code == 200
+    return request.json()["id"]
+
+
+def share(client, deck, profiles, actor="alice", recipient="bob", **extra):
+    return client.post(
+        f"/v1/decks/{deck.id}/shares",
+        headers=headers(actor),
+        json={"recipient_id": profiles[recipient]["id"], **extra},
+    )
+
+
+def assert_reads(client, raw_client, deck, user, allowed):
+    api_headers = headers(user) if user else {}
+    for suffix in ("", "/cards"):
+        api = client.get(f"/v1/decks/{deck.id}{suffix}", headers=api_headers)
+        assert api.status_code == (200 if allowed else 404 if user else 401), api.text
+        raw = raw_client.get(f"decks/{deck.id}{suffix}", headers=rules_headers(user))
+        assert raw.status_code == (200 if allowed else 403), raw.text
+    card = next(deck.collection("cards").stream())
+    raw = raw_client.get(f"decks/{deck.id}/cards/{card.id}", headers=rules_headers(user))
+    assert raw.status_code == (200 if allowed else 403), raw.text

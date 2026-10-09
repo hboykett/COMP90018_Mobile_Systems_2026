@@ -36,11 +36,11 @@ firebase deploy --only firestore:rules,firestore:indexes
 
 Rules and indexes live in `firestore.rules` and `firestore.indexes.json`. The Android client depends on `firebase-firestore` and exposes a thin `DeckRemoteDataSource` under `data/remote` (no sync loop yet).
 
-## Social API and friend sharing
+## Social API and deck actions
 
-The [Python social API](backend/README.md) uses the same Firebase Auth project and Firestore database for profiles, friend requests, and explicit read-only deck sharing. Deck `ownerId` remains the Firebase UID, and deck/card fields are unchanged. Removing a friendship revokes private-deck access in both the API and the Firestore rules.
+The [Python social API](backend/README.md) uses the same Firebase Auth project and Firestore database for profiles, friend requests, explicit read-only deck sharing, Publish/unpublish, and Save-a-copy. Deck `ownerId` remains the Firebase UID; copies receive new IDs, private visibility, and protected source attribution. Removing a friendship revokes private source access in both the API and the Firestore rules; previously saved copies remain independent.
 
-The root Firebase configuration includes all five indexes (two deck, three social) and the combined rules. Run `npm run test:emulator` from `backend` after following its setup instructions to test both the API and direct-client access rules. Android Friends/sharing screens and API deployment are still pending.
+The root Firebase configuration includes all five indexes (two deck, three social) and the combined rules. Run `npm run test:emulator` from `backend` after following its setup instructions to test both the API and direct-client access rules. Android Friends/sharing screens, publish/copy controls, and HTTP integration are still pending. API and rules updates need separate deployment; see the [Cloud Run guide](backend/DEPLOYMENT.md).
 
 ## Building & running
 

@@ -33,6 +33,7 @@ class Database:
         self.usernames = self.root.collection("usernames")
         self.relationships = self.root.collection("relationships")
         self.request_ids = self.root.collection("request_ids")
+        self.copy_requests = self.root.collection("copy_requests")
         self.config = self.root.collection("metadata").document("config")
 
     def subject_hash(self, uid: str) -> str:

@@ -2,7 +2,7 @@
 
 **Backend:** Cloud Firestore in Firebase project `com-comp90018-flashcards`  
 **Auth:** Firebase Auth (`uid` = deck `ownerId`, same as local Room)  
-**Architecture:** Firebase Auth and Cloud Firestore, with direct Android deck access and a Python social API for profiles, friendships, and share permissions. See [backend/README.md](../backend/README.md).
+**Architecture:** Firebase Auth and Cloud Firestore, with direct Android deck access and a Python social API for profiles, friendships, sharing, publishing, and copying. See [backend/README.md](../backend/README.md).
 
 This document is the missing write-up for [SPIKE #17](https://github.com/hboykett/COMP90018_Mobile_Systems_2026/issues/17) and the schema provisioned for [#18](https://github.com/hboykett/COMP90018_Mobile_Systems_2026/issues/18).
 
@@ -17,7 +17,7 @@ This document is the missing write-up for [SPIKE #17](https://github.com/hboyket
 
 Per-user spaced-repetition progress stays in **local Room** until a later sync design. Do not store SM-2 / FSRS fields on shared deck documents.
 
-The table above describes the original #18 scope. The social API now adds friend sharing without changing the deck/card fields or the `private` / `public` visibility values.
+The table above describes the original #18 scope. The social API now implements friend sharing, Publish/unpublish, and Save-a-copy. The original deck/card fields and `private` / `public` visibility values remain unchanged; copied decks add optional source attribution.
 
 ## Collections
 
@@ -25,7 +25,7 @@ The table above describes the original #18 scope. The social API now adds friend
 decks/{deckId}
   cards/{cardId}
   shares/{recipientFirebaseUid}  # server-managed permissions
-social_backends/{namespace}/...  # profiles, friendships, private ID mappings
+social_backends/{namespace}/...  # profiles, friendships, private ID mappings, copy receipts
 ```
 
 ### `decks/{deckId}`
@@ -37,8 +37,11 @@ social_backends/{namespace}/...  # profiles, friendships, private ID mappings
 | `visibility` | string | `"private"` or `"public"` (publish for search / Save-a-copy) |
 | `updatedAt` | timestamp | UTC; used for ordering and conflict hints |
 | `cardCount` | number | Denormalised count for catalogue lists |
+| `copiedFrom` | map? | API-issued source attribution on saved copies; absent on original decks |
 
 Document id = same UUID as local `DeckEntity.deckId` so sync can match rows later.
+
+`copiedFrom` contains `deckId` (immediate source UUID), `ownerId` (source owner's Firebase UID), and `copiedAt` (UTC timestamp). The API creates a new private deck owned by the caller, with fresh deck/card UUIDs and an actual card count. It copies only card content, including image URI references; it does not copy image files, sharing permissions, or study progress. Copies remain independent of later changes to the source. See the [copy contract and limits](../backend/README.md#publish-and-save-a-copy-contract).
 
 ### `decks/{deckId}/cards/{cardId}`
 
@@ -64,6 +67,8 @@ Committed in [`firestore.rules`](../firestore.rules):
 - Removing a friendship revokes private access; a new friendship requires a new share. Public access remains available to all signed-in users.
 - Social documents and share grants cannot be read or written directly by clients.
 - `ownerId` cannot be changed on update.
+- Only the API can create `copiedFrom`; clients cannot add, alter, or remove attribution on updates. Owners can still edit copy contents. The existing Android data source uses merge writes, which preserve this metadata.
+- Unpublishing preserves explicit friend shares. Revoking source access does not delete previously saved copies.
 
 ## Indexes
 
@@ -94,4 +99,4 @@ firebase deploy --only firestore:rules,firestore:indexes
 
 - Dependency: `com.google.firebase:firebase-firestore` (Firebase BOM already in the app).
 - Models / stub: `com.comp90018.flashcards.data.remote` — CRUD helpers only; no offline sync loop yet.
-- Existing `getDeck(deckId)` and `listCards(deckId)` can read explicitly shared private decks after a grant is issued through the API. Friends/sharing UI, shared-deck discovery, and HTTP integration remain to be connected.
+- Existing `getDeck(deckId)` and `listCards(deckId)` can read explicitly shared private decks after a grant is issued through the API, and saved copies using the returned deck ID. Friends/sharing UI, shared-deck discovery, publish/copy controls, and HTTP integration remain to be connected. Importing a copy into Room must use its new IDs and initialize fresh study state.

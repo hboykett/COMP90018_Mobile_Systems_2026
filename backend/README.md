@@ -2,7 +2,7 @@
 
 Start with account profiles and the friend graph: Share needs to check both ownership and an accepted friendship, and Save-a-copy needs to check whether the source is accessible. The Android app already provides email/password and Google sign-in through Firebase Auth. This API reuses that identity instead of maintaining another password database.
 
-This API implements profiles, username lookup, friend requests, persistent bidirectional friendships, and explicit friend sharing in Cloud Firestore. It uses Jason-Ren's existing root `decks/{deckId}` and `cards` schema. Android continues to access deck data directly through Firestore; the Python API manages social actions and share permissions. Publish and Save-a-copy endpoints, sync, and the Android Friends/sharing screens remain subsequent work. The Android app does not yet call this API.
+This API implements profiles, username lookup, friend requests, persistent bidirectional friendships, explicit friend sharing, Publish/unpublish, and Save-a-copy in Cloud Firestore. It uses Jason-Ren's existing root `decks/{deckId}` and `cards` schema, with optional source attribution on copied decks. Android continues to access deck data directly through Firestore; the Python API manages social actions and copies. Sync and the Android Friends/sharing screens remain subsequent work. The Android app does not yet call this API.
 
 ## Run locally
 
@@ -76,6 +76,9 @@ Firebase handles account registration, passwords, password reset, and Google sig
 | DELETE | `/v1/friends/{public_user_id}` | Remove a friendship for both users |
 | POST | `/v1/decks/{deck_id}/shares` | Owner shares with an accepted friend: `{"recipient_id":"<public UUID>"}` |
 | DELETE | `/v1/decks/{deck_id}/shares/{recipient_id}` | Owner revokes an explicit share; safe to retry |
+| POST | `/v1/decks/{deck_id}/publish` | Owner makes a deck public; returns the deck; safe to retry |
+| DELETE | `/v1/decks/{deck_id}/publish` | Owner makes a deck private; keeps explicit shares; returns the deck |
+| POST | `/v1/decks/{deck_id}/copies` | Save an accessible deck as a private copy: `{"request_id":"<new UUID>","name":"Optional name"}` |
 | GET | `/v1/decks/{deck_id}` | Read a deck as its owner, an explicit shared friend, or a signed-in public reader |
 | GET | `/v1/decks/{deck_id}/cards` | Read cards with the same access check; `limit` and `offset` supported |
 
@@ -92,6 +95,24 @@ Sharing leaves `visibility` as `private` or `public`, leaves the owner unchanged
 Grants live in `decks/{deckId}/shares/{recipientFirebaseUid}`. Each records the owner UID, recipient public UUID, social namespace, relationship pair ID, current friend-request ID, participant hashes, and creation timestamp. Rules look up the grant and the accepted relationship; clients cannot read or write grant documents directly. The API grants within its configured social namespace, and reads evaluate the namespace recorded in the grant, just as the rules do. Firestore does not automatically delete subcollections when a deck is deleted, so deck IDs must not be reused for unrelated decks. A grant is also bound to its owner UID, preventing it from authorizing a different owner who recreates that ID.
 
 API deck/card responses preserve the existing camelCase fields and add `deckId` / `cardId` from the document IDs. Firestore `updatedAt` is returned as an ISO timestamp over HTTP. Shared private decks are read by known ID; the original owner/public catalogue queries remain unchanged. A shared-deck inbox, notifications, and Android HTTP integration are not included yet.
+
+## Publish and Save-a-copy contract
+
+Only the owner can publish or unpublish. Publishing sets `visibility` to `public`, making the deck and cards readable by every signed-in user through the API, the existing public catalogue, and direct Firestore reads. Unpublishing sets it to `private`; existing explicit friend shares continue to work. Neither operation changes the owner, cards, share grants, or source attribution. `updatedAt` changes only when visibility changes. Repeating the same action returns the current deck without another timestamp update. Publish and copy require Firebase sign-in but do not require a social profile.
+
+Save-a-copy accepts a source owned by the caller, a public source, or a private source explicitly shared through a current friendship. Being friends alone does not grant access. The response is HTTP `200` with the new deck; fetch its cards through `GET /v1/decks/{newDeckId}/cards` or the Android Firestore client. The new deck:
+
+- Belongs to the caller, starts private, and has new deck and card UUIDs.
+- Uses the source name unless an optional trimmed name of 1–200 characters is supplied.
+- Copies card fronts, backs, positions, and optional image URI strings. Image files are not duplicated; local device URIs are not made portable.
+- Calculates `cardCount` from the actual cards and copies no share grants, SM-2/FSRS progress, or unknown fields. Android must initialize fresh study state when importing the new IDs into Room.
+- Records `copiedFrom: {deckId, ownerId, copiedAt}` for the immediate source. `ownerId` is the source owner's Firebase UID; `copiedAt` is a Firestore timestamp, serialized as ISO text over HTTP. A copy of a copy points to that immediate copy. Direct clients cannot create, change, or remove this metadata, but the copy owner can edit the deck's content, share it, and publish it.
+
+The copy is independent: subsequent source edits, deletion, unpublishing, revoked sharing, or unfriending do not change or remove it. Access checks, card reads, all destination writes, and the retry receipt happen in one Firestore transaction, so a failed action leaves no partial copy. This synchronous endpoint accepts up to **400 cards and 4 MiB of serialized copied content**; larger sources return `413 deck_too_large` and require splitting into smaller decks. Malformed source cards or a non-string source name return `409 invalid_source_deck`.
+
+Generate `request_id` once per Save-a-copy action and retain it and the request body until the outcome is known. Retrying the same UUID with the same source and normalized name returns the same copy, including after an API restart or loss of access to the source. It returns the copy's current metadata if the owner has since edited it. A different source or name with that UUID returns `409 copy_request_conflict`. If the completed copy was deleted, the retry returns `410 copy_deleted`; it never silently recreates it. Another intentional copy requires a new UUID. Receipts are private, scoped to the signed-in user and social namespace, and retained without automatic expiration.
+
+Deploy the updated root Firestore rules before enabling these endpoints in a live deployment, so source attribution is protected from client edits. No additional composite indexes are needed.
 
 ## Two-user walkthrough
 
@@ -118,6 +139,26 @@ Invoke-RestMethod "$api/v1/friends" -Headers $aliceHeaders
 Invoke-RestMethod "$api/v1/friends" -Headers $bobHeaders
 ```
 
+After Alice uploads a deck and cards through the existing cloud deck client, continue with its UUID:
+
+```powershell
+$deckId = '<ALICE_UPLOADED_DECK_UUID>'
+Invoke-RestMethod "$api/v1/decks/$deckId/shares" -Method Post -Headers $aliceHeaders `
+    -ContentType 'application/json' -Body (@{ recipient_id = $bob.id } | ConvertTo-Json)
+
+# Retain this body unchanged if the copy request needs retrying.
+$copyBody = @{ request_id = [guid]::NewGuid().ToString(); name = 'My study copy' } | ConvertTo-Json
+$copy = Invoke-RestMethod "$api/v1/decks/$deckId/copies" -Method Post -Headers $bobHeaders `
+    -ContentType 'application/json' -Body $copyBody
+Invoke-RestMethod "$api/v1/decks/$($copy.deckId)/cards" -Headers $bobHeaders
+
+Invoke-RestMethod "$api/v1/decks/$deckId/publish" -Method Post -Headers $aliceHeaders
+Invoke-RestMethod "$api/v1/decks/$deckId/publish" -Method Delete -Headers $aliceHeaders
+Invoke-RestMethod "$api/v1/decks/$deckId/shares/$($bob.id)" -Method Delete -Headers $aliceHeaders
+# Bob now loses source access but still owns the saved copy.
+Invoke-RestMethod "$api/v1/decks/$($copy.deckId)" -Headers $bobHeaders
+```
+
 ## State transitions and client errors
 
 Only the recipient can accept/decline, and only the sender can cancel. Only acceptance creates a friendship. A single stored relationship represents both sides. Sending yourself a request is rejected. Crossed requests return `409 incoming_request_exists`; they do not silently accept each other.
@@ -134,12 +175,14 @@ Known application/validation errors use this format:
 |---|---|---|
 | 401 | Missing, invalid, expired, revoked, or disabled-user token | Refresh token once; then sign in |
 | 403 | This participant cannot perform that action | Roll back optimistic update |
-| 404 | Profile/request not found, or request is not visible to caller | Set up profile for `profile_required`; otherwise refresh |
-| 409 | Username conflict or conflicting relationship state | Roll back and reload current state |
+| 404 | Profile/request/deck not found or inaccessible | Set up profile for `profile_required`; otherwise refresh |
+| 409 | Username/relationship conflict, changed copy request, or malformed source | Reload state; use a new copy request UUID for changed options; fix malformed source data |
+| 410 | The copy associated with this request UUID was deleted | Start a new copy action with a new UUID if wanted |
+| 413 | Source exceeds the synchronous copy limits | Split the source into smaller decks |
 | 422 | Invalid fields or self-request | Show validation feedback |
 | 503 | Firebase verification/storage unavailable or transaction contention | Roll back, reload current state, offer retry |
 
-For optimistic UI, keep the previous list state, show the pending action, replace it with the server response on success, and restore/reload it on failure. After a timeout the outcome is unknown: reload before retrying. Cancel outstanding calls and clear social state on account changes. These are integration contracts; the Friends UI is not implemented in this slice.
+For optimistic UI, keep the previous list state, show the pending action, replace it with the server response on success, and restore/reload it on failure. After a timeout the outcome is unknown: reload before retrying; for Save-a-copy, retry the same stored request UUID and body to recover the completed result without duplicates. Cancel outstanding calls and clear social state on account changes. These are integration contracts; the Friends UI is not implemented in this slice.
 
 ## Storage and privacy
 
@@ -152,6 +195,7 @@ Firestore is the only runtime storage backend. Data lives under `social_backends
 | `usernames` | `u_` + normalized username | Transactional username reservation |
 | `relationships` | Sorted pair of identity hashes | One state for both friendship participants |
 | `request_ids` | Current request UUID | Resolve a request to its canonical pair |
+| `copy_requests` | Identity hash + `_` + client request UUID | Source/options, destination ID, and attribution receipt for retrying one copy action |
 | `metadata` | `config` | Schema version and identity-key fingerprint |
 
 Profiles retain their public IDs during edits. Username changes atomically reserve the new name and release the old one. Relationships use a deterministic pair document, so two API instances cannot create duplicate edges. Resends atomically delete the old request-ID mapping and create the new one. Every write operation uses a Firestore transaction with all reads before writes, with up to five attempts and randomized backoff for transaction conflicts. There are no process-local locks or files providing persistence. List queries apply their limit/offset in Firestore and batch-fetch the page's current profiles; profile renames therefore appear immediately without rewriting the graph.
@@ -162,7 +206,7 @@ This replaces the documents' vague “salted/hashed friend graph” idea with a 
 
 Back up the identity key separately from Firestore. Key rotation requires a planned identity migration; changing the environment value is not a migration. Firestore schema version 1 is recorded in `metadata/config`, and unknown versions are rejected.
 
-For Cloud Run, use its attached service account and Application Default Credentials instead of shipping a service-account JSON. That identity needs Firestore data access (for example, `roles/datastore.user`) and permission to read Firebase Auth users for revocation checks (for example, `roles/firebaseauth.viewer`). Supply the stable HMAC key through Secret Manager. Do not set `FIRESTORE_EMULATOR_HOST` in a deployed service; the API rejects it when running on Cloud Run. API deployment, rate limits/abuse controls, block lists, account deletion, and a general schema/data migration process are not configured here.
+For Cloud Run, use its attached service account and Application Default Credentials instead of shipping a service-account JSON. That identity needs Firestore data access (for example, `roles/datastore.user`) and permission to read Firebase Auth users for revocation checks (for example, `roles/firebaseauth.viewer`). Supply the stable HMAC key through Secret Manager. Do not set `FIRESTORE_EMULATOR_HOST` in a deployed service; the API rejects it when running on Cloud Run. Deployment is described in [DEPLOYMENT.md](DEPLOYMENT.md). Rate limits/abuse controls, block lists, account deletion, and a general schema/data migration process are not configured here.
 
 ## Tests
 
@@ -178,7 +222,7 @@ npm run test:emulator
 
 The first run downloads the Firestore emulator. Subsequent tests need no live Firebase project or credentials. On Windows, point `JAVA_HOME` and `PATH` to a Java 21 installation if the default `java` is older. If PowerShell activation is disabled, prepend the virtual environment to the current shell with `$env:PATH = "$PWD/.venv/Scripts;$env:PATH"`, then run `npm run test:emulator`. Tests fail explicitly when the emulator environment is absent instead of falling back to a live database. Auth/configuration unit tests can run separately with `.venv/Scripts/python.exe -m pytest tests/test_auth.py -q`.
 
-Tests exercise account ownership, validation, atomic username reservations, request permissions, symmetric friendship, duplicate retries, concurrent requests across separate app instances, pagination, persistence across app restarts, and rejection of changed identity configuration. Sharing tests make authenticated client requests directly to the emulator, exercising the canonical root rules as well as the API: owner/public/private reads, explicit sharing, revoke/unfriend/refriend, forbidden edits and forged grants, identity-mapping upgrades, and existing catalogue queries. Auth adapter tests mock the Firebase SDK boundary and check revocation/error handling; they do not replace a live Firebase smoke test. CI runs the emulator and these checks independently of the Android build.
+Tests exercise account ownership, validation, atomic username reservations, request permissions, symmetric friendship, duplicate retries, concurrent requests across separate app instances, pagination, persistence across app restarts, and rejection of changed identity configuration. Deck tests exercise both the API and authenticated client requests against the canonical root rules: owner/public/private reads, share/revoke/unfriend/refriend, publish/unpublish, copied content and attribution, concurrent copy retries, independent copies, and atomic failure with no partial writes. They also cover forbidden edits and forged grants/attribution, identity-mapping upgrades, and existing catalogue queries. Auth adapter tests mock the Firebase SDK boundary and check revocation/error handling; they do not replace a live Firebase smoke test. CI runs the emulator and these checks independently of the Android build.
 
 The emulator does not enforce production composite-index requirements. Deploy the checked-in indexes before the live smoke test; emulator success alone does not verify production IAM, index readiness, or Firebase credentials.
 
@@ -186,9 +230,9 @@ The emulator does not enforce production composite-index requirements. Deploy th
 
 1. Connect profile setup and a Friends repository/screen in Android to this API.
 2. Add Android share/revoke actions and a shared-deck inbox using this API and the existing cloud deck client.
-3. Implement Publish: owner-only public visibility and an unpublish operation.
-4. Implement Save-a-copy: check current access, create new deck/card IDs owned by the recipient, reset study scheduling, and preserve source attribution. Copies should not be modified by later source edits.
+3. Connect Android Publish/unpublish controls and public catalogue actions to the implemented endpoints.
+4. Connect Android Save-a-copy, retaining its request UUID through retries; import the returned deck/cards into Room with fresh study state and show source attribution.
 
-Publish and Save-a-copy are proposed contracts, not implemented endpoints. The older `discussion1509.md` removes friends; this implementation follows the current request to include them and the supplied Project Plan.
+The older `discussion1509.md` removes friends; this implementation follows the current request to include them and the supplied Project Plan.
 
 References: [Firebase token verification](https://firebase.google.com/docs/auth/admin/verify-id-tokens), [Firebase Admin setup](https://firebase.google.com/docs/admin/setup), [Firestore transactions](https://firebase.google.com/docs/firestore/manage-data/transactions), [Firestore emulator](https://firebase.google.com/docs/emulator-suite/connect_firestore), [FastAPI testing](https://fastapi.tiangolo.com/tutorial/testing/).

@@ -16,6 +16,7 @@ from social_api.errors import ApiError
 from social_api.models import (
     Card,
     Deck,
+    DeckCopyInput,
     DeckShare,
     DeckShareInput,
     ErrorResponse,
@@ -67,10 +68,12 @@ def create_app(settings: Settings | None = None, verifier: TokenVerifier | None 
 
     app = FastAPI(
         title="Flashcards Social API",
-        version="0.1.0",
-        description="Firebase-authenticated profiles, friends, and deck sharing.",
+        version="0.2.0",
+        description="Firebase-authenticated profiles, friends, sharing, publishing, and copies.",
         lifespan=lifespan,
-        responses={code: {"model": ErrorResponse} for code in (401, 403, 404, 409, 422, 503)},
+        responses={
+            code: {"model": ErrorResponse} for code in (401, 403, 404, 409, 410, 413, 422, 503)
+        },
     )
 
     @app.exception_handler(ApiError)
@@ -171,6 +174,18 @@ def create_app(settings: Settings | None = None, verifier: TokenVerifier | None 
     @app.get("/v1/decks/{deck_id}", response_model=Deck, tags=["Decks"])
     def get_deck(deck_id: UUID, user: CurrentUser):
         return decks.get_deck(user.uid, str(deck_id))
+
+    @app.post("/v1/decks/{deck_id}/publish", response_model=Deck, tags=["Decks"])
+    def publish_deck(deck_id: UUID, user: CurrentUser):
+        return decks.set_published(user.uid, str(deck_id), True)
+
+    @app.delete("/v1/decks/{deck_id}/publish", response_model=Deck, tags=["Decks"])
+    def unpublish_deck(deck_id: UUID, user: CurrentUser):
+        return decks.set_published(user.uid, str(deck_id), False)
+
+    @app.post("/v1/decks/{deck_id}/copies", response_model=Deck, tags=["Decks"])
+    def save_copy(deck_id: UUID, body: DeckCopyInput, user: CurrentUser):
+        return decks.save_copy(user.uid, str(deck_id), body)
 
     @app.get("/v1/decks/{deck_id}/cards", response_model=list[Card], tags=["Decks"])
     def list_cards(deck_id: UUID, user: CurrentUser, limit: Limit = 50, offset: Offset = 0):
