@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
             AppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     FlashcardApp()
                 }
