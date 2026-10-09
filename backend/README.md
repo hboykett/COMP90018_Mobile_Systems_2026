@@ -6,6 +6,8 @@ This API implements profiles, username lookup, friend requests, persistent bidir
 
 ## Run locally
 
+For online hosting, follow the [Cloud Run deployment guide](DEPLOYMENT.md). It includes the project permissions, Secret Manager setup, and PowerShell deployment commands.
+
 Requires Python 3.12. Run these commands from `backend` in PowerShell:
 
 ```powershell
