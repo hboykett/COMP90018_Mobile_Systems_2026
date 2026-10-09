@@ -133,6 +133,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
+    // Material3
+    implementation("androidx.compose.material3:material3")
     // Detekt Compose-aware rules
     detektPlugins("io.nlopez.compose.rules:detekt:0.4.4")
 }
