@@ -123,9 +123,9 @@ fun AppTheme(
     darkTheme: Boolean = rememberDarkThemeFromLightSensor(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = false,
+    @Suppress("ktlint:standard:annotation")
     content:
-        @Composable()
-        () -> Unit,
+        @Composable() () -> Unit,
 ) {
     val colorScheme =
         when {
