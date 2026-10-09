@@ -320,7 +320,9 @@ fun rememberDarkThemeFromLightSensor(
                 if (lux < darkBelowLux) isDark = true
                 else if (lux > lightAboveLux) isDark = false
             }
-            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+                //no change required
+            }
         }
 
         // Only listen while the app is visible (saves battery)
