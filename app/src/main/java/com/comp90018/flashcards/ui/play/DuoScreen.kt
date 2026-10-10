@@ -23,15 +23,19 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comp90018.flashcards.data.local.entity.CardEntity
 
 private val MISSED_LIST_MAX_WIDTH = 560.dp
@@ -143,7 +147,20 @@ private fun FrontContent(
 private fun BackContent(
     uiState: DuoUiState,
     onGesture: (TiltGesture) -> Unit,
+    viewModel: DuoViewModel = hiltViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val currentOnGesture by rememberUpdatedState(onGesture)
+
+    DisposableEffect(viewModel) {
+        val detector = DuoFlipDetector(context) { gesture -> currentOnGesture(gesture) }
+        detector.start()
+        onDispose {
+            detector.stop()
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         GestureZone(
             label = "Wrong (tilt up)",
