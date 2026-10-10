@@ -1,6 +1,0 @@
-# Upload/build only the runtime source; keep local credentials and test data out.
-**
-!Dockerfile
-!requirements.txt
-!social_api/
-!social_api/*.py

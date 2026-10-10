@@ -101,10 +101,13 @@ private fun StudyContent(
     onFlip: () -> Unit,
     onRate: (Rating) -> Unit,
 ) {
-    val currentCard = uiState.currentCard
-    // Cards can come back for another step, so progress is reviews done out of reviews known so far.
-    val total = uiState.reviewedCount + uiState.remainingCount
-    val progress = if (total > 0) uiState.reviewedCount.toFloat() / total else 0f
+    val currentCard = uiState.cards.getOrNull(uiState.currentIndex)
+    val progress =
+        if (uiState.cards.isNotEmpty()) {
+            (uiState.currentIndex.toFloat()) / uiState.cards.size
+        } else {
+            0f
+        }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -121,7 +124,7 @@ private fun StudyContent(
         )
 
         Text(
-            text = "${uiState.remainingCount} left · ${uiState.reviewedCount} reviewed",
+            text = "Card ${uiState.currentIndex + 1} of ${uiState.cards.size}",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(vertical = 8.dp),
         )
@@ -157,7 +160,7 @@ private fun StudyContent(
             } else {
                 RatingButtons(onRate = onRate)
             }
-        } else if (!uiState.isSessionComplete) {
+        } else if (uiState.cards.isEmpty() && !uiState.isSessionComplete) {
             // This case should be handled by loadDueCards and isSessionComplete
             Text("No cards due for review.")
         }

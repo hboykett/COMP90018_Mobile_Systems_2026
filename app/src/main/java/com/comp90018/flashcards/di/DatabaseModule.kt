@@ -5,7 +5,6 @@ import androidx.room.Room
 import com.comp90018.flashcards.data.local.FlashcardDatabase
 import com.comp90018.flashcards.data.local.dao.CardDao
 import com.comp90018.flashcards.data.local.dao.DeckDao
-import com.comp90018.flashcards.data.local.dao.ReviewDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,7 +33,4 @@ object DatabaseModule {
 
     @Provides
     fun provideDeckDao(database: FlashcardDatabase): DeckDao = database.deckDao()
-
-    @Provides
-    fun provideReviewDao(database: FlashcardDatabase): ReviewDao = database.reviewDao()
 }

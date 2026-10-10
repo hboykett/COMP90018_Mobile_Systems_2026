@@ -1,15 +1,12 @@
 package com.comp90018.flashcards.data.local
 
 import androidx.room.TypeConverter
-import java.time.Instant
+import java.time.LocalDate
 
-/**
- * Stores instants as UTC epoch milliseconds, so the values mean the same thing on every device.
- */
 class Converters {
     @TypeConverter
-    fun fromEpochMillis(value: Long?): Instant? = value?.let { Instant.ofEpochMilli(it) }
+    fun fromTimestamp(value: String?): LocalDate? = value?.let { LocalDate.parse(it) }
 
     @TypeConverter
-    fun toEpochMillis(instant: Instant?): Long? = instant?.toEpochMilli()
+    fun dateToTimestamp(date: LocalDate?): String? = date?.toString()
 }

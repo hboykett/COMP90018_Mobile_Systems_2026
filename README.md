@@ -20,28 +20,6 @@ Authentication is Firebase Auth. Users can continue with Google, or register and
 4. Download `google-services.json` into `app/google-services.json` and rebuild. The web client id (`client_type` 3) is read into the `web_client_id` string resource.
 5. Demo on a device with Google Play, using two Google accounts. A plain emulator often cannot complete Google sign-in.
 
-## Cloud decks (Firestore)
-
-Shared deck storage uses **Cloud Firestore** in the same Firebase project as Auth (`com-comp90018-flashcards`). Local Room remains the source of truth on device; async sync and upload/download UI are separate Stage 2 issues.
-
-Schema, security rules, and provisioning steps: [docs/cloud-deck-schema.md](docs/cloud-deck-schema.md).
-
-1. In the Firebase Console, create a Firestore database for the project (if it does not exist yet).
-2. Install the [Firebase CLI](https://firebase.google.com/docs/cli), then from the repo root:
-
-```bash
-firebase use com-comp90018-flashcards
-firebase deploy --only firestore:rules,firestore:indexes
-```
-
-Rules and indexes live in `firestore.rules` and `firestore.indexes.json`. The Android client depends on `firebase-firestore` and exposes a thin `DeckRemoteDataSource` under `data/remote` (no sync loop yet).
-
-## Social API and friend sharing
-
-The [Python social API](backend/README.md) uses the same Firebase Auth project and Firestore database for profiles, friend requests, and explicit read-only deck sharing. Deck `ownerId` remains the Firebase UID, and deck/card fields are unchanged. Removing a friendship revokes private-deck access in both the API and the Firestore rules.
-
-The root Firebase configuration includes all five indexes (two deck, three social) and the combined rules. Run `npm run test:emulator` from `backend` after following its setup instructions to test both the API and direct-client access rules. Android Friends/sharing screens and API deployment are still pending.
-
 ## Building & running
 
 ```bash
@@ -78,9 +56,7 @@ Detekt also pulls in the [Compose rules](https://mrmans0n.github.io/compose-rule
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs two parallel jobs on every pull request and on every push to `main`: Android checks (`./gradlew check`: tests, Android Lint, ktlint, detekt) and Social API checks (Ruff lint/format checks and the API/Firestore rules tests in the emulator). Each job has its own environment: JDK 17 for Android; Python 3.12, Node 20, and Java 21 for the social API.
-
-A red check on a PR means one of those failed — click into the job's logs to see which task and what it reported. There's no auto-fix step in CI. For Android formatting issues, run `./gradlew ktlintFormat detekt` locally; for social API checks, follow [backend/README.md](backend/README.md), then push the fix.
+`.github/workflows/ci.yml` runs `./gradlew check` (tests, Android Lint, ktlint, detekt) on every pull request and on every push to `main`. A red check on a PR means one of those failed — click into the run's logs to see which task and what it reported; the failure will match what you'd see running that same command locally. There's no auto-fix step in CI (it doesn't push formatting changes back) — run `./gradlew ktlintFormat detekt` locally and push the fix.
 
 ### Troubleshooting: `./gradlew` fails with `What went wrong: 26` (or similar bare number)
 

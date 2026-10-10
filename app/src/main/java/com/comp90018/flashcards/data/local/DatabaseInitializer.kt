@@ -4,6 +4,7 @@ import com.comp90018.flashcards.data.local.dao.CardDao
 import com.comp90018.flashcards.data.local.dao.DeckDao
 import com.comp90018.flashcards.data.local.entity.CardEntity
 import com.comp90018.flashcards.data.local.entity.DeckEntity
+import com.comp90018.flashcards.data.local.entity.SpacedRepetitionState
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -53,7 +54,10 @@ class DatabaseInitializer
                             back = "A modern programming language.",
                         ),
                     )
-                sampleCards.forEach { card -> cardDao.insertCard(card) }
+                sampleCards.forEach { card ->
+                    cardDao.insertCard(card)
+                    cardDao.insertState(SpacedRepetitionState(cardId = card.cardId))
+                }
 
                 // 2. Alphabet Deck (26 cards)
                 val alphabetDeckId = UUID.randomUUID().toString()
@@ -80,7 +84,10 @@ class DatabaseInitializer
                             back = letter,
                         )
                     }
-                alphabetCards.forEach { card -> cardDao.insertCard(card) }
+                alphabetCards.forEach { card ->
+                    cardDao.insertCard(card)
+                    cardDao.insertState(SpacedRepetitionState(cardId = card.cardId))
+                }
             }
         }
     }

@@ -3,7 +3,6 @@ package com.comp90018.flashcards.ui.study
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.comp90018.flashcards.data.auth.AuthRepository
 import com.comp90018.flashcards.domain.model.CardWithState
 import com.comp90018.flashcards.domain.model.Rating
 import com.comp90018.flashcards.domain.repository.CardRepository
@@ -14,16 +13,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
 import javax.inject.Inject
 
 /**
  * UI State for the Study Screen.
  */
 data class StudyUiState(
-    val currentCard: CardWithState? = null,
-    val reviewedCount: Int = 0,
-    val remainingCount: Int = 0,
+    val cards: List<CardWithState> = emptyList(),
+    val currentIndex: Int = 0,
     val isFlipped: Boolean = false,
     val isSessionComplete: Boolean = false,
 )
@@ -36,8 +33,6 @@ class StudyViewModel
     @Inject
     constructor(
         private val repository: CardRepository,
-        private val authRepository: AuthRepository,
-        private val clock: Clock,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         // The deckId is passed via navigation arguments
@@ -45,11 +40,6 @@ class StudyViewModel
 
         private val _uiState = MutableStateFlow(StudyUiState())
         val uiState: StateFlow<StudyUiState> = _uiState.asStateFlow()
-
-        private var session = StudySession(emptyList())
-
-        // Stops a quick double tap from rating the same card twice.
-        private var isSavingRating = false
 
         init {
             loadDueCards()
@@ -59,16 +49,15 @@ class StudyViewModel
          * Loads cards that are due for review in the current deck.
          */
         private fun loadDueCards() {
-            val userId = authRepository.currentUid
-            if (userId == null) {
-                _uiState.update { it.copy(isSessionComplete = true) }
-                return
-            }
             viewModelScope.launch {
-                // The first emission is the starting queue. Cards rated into a learning step are
-                // added back by the session, so later database changes are not needed here.
-                session = StudySession(repository.getDueCards(userId, deckId).first())
-                publishSession()
+                // We take the first emission to have a stable list for the session.
+                val dueCards = repository.getDueCards(deckId).first()
+                _uiState.update {
+                    it.copy(
+                        cards = dueCards,
+                        isSessionComplete = dueCards.isEmpty(),
+                    )
+                }
             }
         }
 
@@ -80,34 +69,34 @@ class StudyViewModel
         }
 
         /**
-         * Rates the current card, reschedules it with FSRS and moves to the next card.
+         * Rates the current card and moves to the next one.
          */
         fun rateCard(rating: Rating) {
-            val currentCard = session.current
-            val userId = authRepository.currentUid
-            if (currentCard == null || userId == null || isSavingRating) return
-            isSavingRating = true
+            val currentState = uiState.value
+            val currentCard = currentState.cards.getOrNull(currentState.currentIndex) ?: return
 
             viewModelScope.launch {
-                try {
-                    val updated = repository.reviewCard(userId, currentCard.card.cardId, rating)
-                    session.answer(currentCard.copy(state = updated), clock.instant())
-                    publishSession()
-                } finally {
-                    isSavingRating = false
-                }
+                // Update card state in the repository (spaced repetition logic)
+                repository.updateCardState(currentCard.card.cardId, rating)
+                // Proceed to the next card
+                nextCard()
             }
         }
 
-        private fun publishSession() {
-            _uiState.update {
-                it.copy(
-                    currentCard = session.current,
-                    reviewedCount = session.reviewedCount,
-                    remainingCount = session.remainingCount,
-                    isFlipped = false,
-                    isSessionComplete = session.isComplete,
-                )
+        /**
+         * Moves to the next card in the list or completes the session.
+         */
+        fun nextCard() {
+            _uiState.update { state ->
+                val nextIndex = state.currentIndex + 1
+                if (nextIndex < state.cards.size) {
+                    state.copy(
+                        currentIndex = nextIndex,
+                        isFlipped = false,
+                    )
+                } else {
+                    state.copy(isSessionComplete = true)
+                }
             }
         }
     }
