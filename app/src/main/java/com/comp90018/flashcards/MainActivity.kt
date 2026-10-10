@@ -32,6 +32,7 @@ import com.comp90018.flashcards.ui.deck.DeckPageScreen
 import com.comp90018.flashcards.ui.play.ChooseTimerScreen
 import com.comp90018.flashcards.ui.play.DuoScreen
 import com.comp90018.flashcards.ui.study.StudyScreen
+import com.comp90018.flashcards.ui.lobby.LobbyScreen
 import com.comp90018.flashcards.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -86,6 +87,7 @@ private fun FlashcardNavHost(
         }
         deckPlayRoutes(navController)
         duoRoutes(navController)
+        twoVTwoRoutes(navController)
         composable(
             route = "add_edit_card/{deckId}?cardId={cardId}",
             arguments =
@@ -146,6 +148,9 @@ private fun NavGraphBuilder.deckPlayRoutes(navController: NavHostController) {
             onPlayDuo = { deckId ->
                 navController.navigate("choose_timer/$deckId")
             },
+            onPlay2v2 = { deckId ->
+                navController.navigate("lobby/$deckId")
+            }
         )
     }
 }
@@ -175,6 +180,16 @@ private fun NavGraphBuilder.duoRoutes(navController: NavHostController) {
     ) {
         DuoScreen(
             onNavigateBack = { navController.popBackStack("choose_mode/{deckId}", inclusive = false) },
+        )
+    }
+}
+private fun NavGraphBuilder.twoVTwoRoutes(navController: NavHostController) {
+    composable(
+        route = "lobby/{deckId}",
+        arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
+    ) {
+        LobbyScreen(
+            onNavigateBack = { navController.popBackStack() }
         )
     }
 }
