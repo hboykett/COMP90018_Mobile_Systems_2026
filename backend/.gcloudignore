@@ -1,0 +1,9 @@
+# Source deployments must not upload secrets, virtualenvs, or emulator data.
+*
+!Dockerfile
+!.dockerignore
+!.gcloudignore
+!requirements.txt
+!social_api/
+!social_api/*.py
+social_api/__pycache__/

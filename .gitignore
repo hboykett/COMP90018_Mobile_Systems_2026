@@ -29,6 +29,30 @@ render.experimental.xml
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
+.firebase/
+firebase-debug.log
+firestore-debug.log
 
 # Android Profiling
 *.hprof
+
+*.venv
+
+.node_modules/
+
+# Python bytecode caches
+__pycache__/
+*.py[cod]
+
+# Node.js dependencies
+node_modules/
+
+# Social API local credentials, databases, test tools and caches
+backend/secrets/
+backend/data/
+backend/.emulator-cache/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.ruff_cache/
