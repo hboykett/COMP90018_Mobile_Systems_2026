@@ -85,7 +85,7 @@ fun DeckListScreen(
                         // Extra bottom padding so the last deck scrolls clear of the FAB.
                         contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),
                     ) {
-                        items(decks) { deck ->
+                        items(decks, key = { it.deckId }) { deck ->
                             DeckItem(
                                 deck = deck,
                                 onOpenClick = { onNavigateToDeck(deck.deckId) },

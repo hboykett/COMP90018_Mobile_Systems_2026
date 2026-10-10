@@ -155,7 +155,7 @@ fun DeckPageScreen(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
                         ) {
-                            items(uiState.cards) { card ->
+                            items(uiState.cards, key = { it.cardId }) { card ->
                                 CardItemView(
                                     card = card,
                                     onClick = { onEditCard(viewModel.deckId, card.cardId) },
