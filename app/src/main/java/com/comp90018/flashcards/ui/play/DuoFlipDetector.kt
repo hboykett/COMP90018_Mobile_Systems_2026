@@ -5,7 +5,6 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import androidx.collection.intSetOf
 import kotlin.math.abs
 
 /**
@@ -21,8 +20,8 @@ class DuoFlipDetector(
     private val gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
     private var armed = true
-    private var angle = 0f            // radians rotated since start(); + is UP
-    private var lastTimestampNs = 0L  // from the sensor event itself
+    private var angle = 0f // radians rotated since start(); + is UP
+    private var lastTimestampNs = 0L // from the sensor event itself
 
     /**
      * Registers the sensor listener.
@@ -43,6 +42,7 @@ class DuoFlipDetector(
         sensorManager.unregisterListener(this)
     }
 
+    @Suppress("ReturnCount")
     override fun onSensorChanged(event: SensorEvent?) {
         // The first event only sets the time reference.
         if (event == null) return
@@ -55,7 +55,7 @@ class DuoFlipDetector(
 
         // rad/s about the device's Y axis. Flip AXIS_SIGN if up/down feel swapped.
         val rate = event.values[1] * AXIS_SIGN
-        if (abs(rate) > RATE_DEADBAND) angle += rate * dt   // deadband limits drift
+        if (abs(rate) > RATE_DEADBAND) angle += rate * dt // deadband limits drift
 
         if (!armed) {
             if (abs(angle) < NEUTRAL_ANGLE) armed = true
@@ -73,12 +73,15 @@ class DuoFlipDetector(
         onGesture(gesture)
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    override fun onAccuracyChanged(
+        sensor: Sensor?,
+        accuracy: Int,
+    ) = Unit
 
     private companion object {
-        const val ANGLE_THRESHOLD = 0.5f   // rad (about 30°). Lower = more sensitive
-        const val NEUTRAL_ANGLE = 0.15f    // rad (about 9°). Must return inside this to re-arm
-        const val RATE_DEADBAND = 0.05f    // rad/s; ignores sensor noise when the phone is still
+        const val ANGLE_THRESHOLD = 0.5f // rad (about 30°). Lower = more sensitive
+        const val NEUTRAL_ANGLE = 0.15f // rad (about 9°). Must return inside this to re-arm
+        const val RATE_DEADBAND = 0.05f // rad/s; ignores sensor noise when the phone is still
         const val AXIS_SIGN = 1f
         const val NS_TO_S = 1e-9f
     }

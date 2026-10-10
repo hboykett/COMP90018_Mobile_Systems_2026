@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comp90018.flashcards.data.local.entity.CardEntity
-import com.comp90018.flashcards.ui.study.StudyViewModel
 
 private val MISSED_LIST_MAX_WIDTH = 560.dp
 
