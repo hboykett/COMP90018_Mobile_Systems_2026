@@ -26,10 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.comp90018.flashcards.data.local.entity.CardEntity
 
-/**
- * Deck page: Deck header & description at top, card list with inline Add Card button in middle,
- * and a pinned bottom Play bar.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeckPageScreen(
@@ -42,54 +38,16 @@ fun DeckPageScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    var showMenu by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More Options")
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Edit Deck Info") },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                                onClick = {
-                                    showMenu = false
-                                    showEditDialog = true
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete Deck", color = MaterialTheme.colorScheme.error) },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    showDeleteConfirmDialog = true
-                                },
-                            )
-                        }
-                    }
-                },
+            DeckPageTopBar(
+                onNavigateBack = onNavigateBack,
+                onEditDeckInfo = { showEditDialog = true },
+                onDeleteDeck = { showDeleteConfirmDialog = true },
             )
         },
     ) { padding ->
@@ -99,119 +57,20 @@ fun DeckPageScreen(
                     .fillMaxSize()
                     .padding(padding),
         ) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // --- TOP HEADER ---
-                DeckHeaderSection(uiState = uiState)
+            DeckPageBody(
+                uiState = uiState,
+                onAddCard = { onAddCard(viewModel.deckId) },
+                onEditCard = { cardId -> onEditCard(viewModel.deckId, cardId) },
+            )
 
-                // --- CARDS LIST HEADER ---
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Cards · ${uiState.cardCount}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-
-                    FilledTonalButton(
-                        onClick = { onAddCard(viewModel.deckId) },
-                        modifier = Modifier.height(48.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 20.dp),
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Add Card", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                if (uiState.cards.isEmpty()) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "No cards in this deck yet.\nTap 'Add Card' above to create cards.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    Box(modifier = Modifier.weight(1f)) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
-                        ) {
-                            items(uiState.cards, key = { it.cardId }) { card ->
-                                CardItemView(
-                                    card = card,
-                                    onClick = { onEditCard(viewModel.deckId, card.cardId) },
-                                )
-                            }
-                        }
-
-                        // Soft fade under the "Cards" header
-                        Box(
-                            modifier =
-                                Modifier
-                                    .align(Alignment.TopCenter)
-                                    .fillMaxWidth()
-                                    .height(16.dp)
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(MaterialTheme.colorScheme.background, Color.Transparent),
-                                        ),
-                                    ),
-                        )
-                    }
-                }
-            }
-
-            // --- FLOATING PLAY BUTTON over a soft bottom fade ---
-            Box(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                0f to Color.Transparent,
-                                0.3f to MaterialTheme.colorScheme.background,
-                                1f to MaterialTheme.colorScheme.background,
-                            ),
-                        )
-                        .padding(start = 16.dp, end = 16.dp, top = 40.dp, bottom = 16.dp),
-            ) {
-                Button(
-                    onClick = { onPlay(viewModel.deckId) },
-                    enabled = uiState.cardCount > 0,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(54.dp),
-                ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(28.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text("Play", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                }
-            }
+            PlayBottomBar(
+                canPlay = uiState.cardCount > 0,
+                onPlay = { onPlay(viewModel.deckId) },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
     }
 
-    // --- DIALOG: EDIT DECK NAME & DESCRIPTION ---
     if (showEditDialog) {
         EditDeckDialog(
             currentName = uiState.deckName,
@@ -224,33 +83,193 @@ fun DeckPageScreen(
         )
     }
 
-    // --- DIALOG: DELETE CONFIRMATION ---
     if (showDeleteConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmDialog = false },
-            title = { Text("Delete Deck") },
-            text = { Text("Are you sure you want to delete '${uiState.deckName}'? This action cannot be reversed.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showDeleteConfirmDialog = false
-                        viewModel.deleteDeck(onDeleted = onNavigateBack)
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text("Delete")
-                }
+        DeleteDeckDialog(
+            deckName = uiState.deckName,
+            onConfirm = {
+                showDeleteConfirmDialog = false
+                viewModel.deleteDeck(onDeleted = onNavigateBack)
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirmDialog = false }) {
-                    Text("Cancel")
-                }
-            },
+            onDismiss = { showDeleteConfirmDialog = false },
         )
     }
 }
 
-// Left-aligned header; the card count now lives in the "Cards" list header.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DeckPageTopBar(
+    onNavigateBack: () -> Unit,
+    onEditDeckInfo: () -> Unit,
+    onDeleteDeck: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    TopAppBar(
+        title = {},
+        navigationIcon = {
+            IconButton(onClick = onNavigateBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        },
+        actions = {
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "More Options")
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit Deck Info") },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                        onClick = {
+                            showMenu = false
+                            onEditDeckInfo()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete Deck", color = MaterialTheme.colorScheme.error) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                        onClick = {
+                            showMenu = false
+                            onDeleteDeck()
+                        },
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun DeckPageBody(
+    uiState: DeckSummaryUiState,
+    onAddCard: () -> Unit,
+    onEditCard: (String) -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // --- TOP HEADER ---
+        DeckHeaderSection(uiState = uiState)
+
+        // --- CARDS LIST HEADER ---
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Cards · ${uiState.cardCount}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            FilledTonalButton(
+                onClick = onAddCard,
+                modifier = Modifier.height(48.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 20.dp),
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Add Card", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        if (uiState.cards.isEmpty()) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "No cards in this deck yet.\nTap 'Add Card' above to create cards.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            Box(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
+                ) {
+                    items(uiState.cards, key = { it.cardId }) { card ->
+                        CardItemView(
+                            card = card,
+                            onClick = { onEditCard(card.cardId) },
+                        )
+                    }
+                }
+
+                // Soft fade under the "Cards" header
+                Box(
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(MaterialTheme.colorScheme.background, Color.Transparent),
+                                ),
+                            ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayBottomBar(
+    canPlay: Boolean,
+    onPlay: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        0.3f to MaterialTheme.colorScheme.background,
+                        1f to MaterialTheme.colorScheme.background,
+                    ),
+                )
+                .padding(start = 16.dp, end = 16.dp, top = 40.dp, bottom = 16.dp),
+    ) {
+        Button(
+            onClick = onPlay,
+            enabled = canPlay,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+        ) {
+            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(12.dp))
+            Text("Play", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
 @Composable
 private fun DeckHeaderSection(uiState: DeckSummaryUiState) {
     Column(
@@ -362,8 +381,28 @@ private fun EditDeckDialog(
     )
 }
 
-// Shared with the choose-mode page so the two pages have matching buttons.
-internal val BUTTON_HEIGHT = 72.dp
-internal val ICON_SIZE = 32.dp
-
-internal fun cardCountLabel(count: Int): String = if (count == 1) "1 card" else "$count cards"
+@Composable
+private fun DeleteDeckDialog(
+    deckName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Deck") },
+        text = { Text("Are you sure you want to delete '$deckName'? This action cannot be reversed.") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onDismiss() }) {
+                Text("Cancel")
+            }
+        },
+    )
+}

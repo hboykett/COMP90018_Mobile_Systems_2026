@@ -38,7 +38,12 @@ fun DeckListScreen(
 
     Scaffold(
         topBar = {
-            DeckListTopBar(onSignOut = viewModel::signOut)
+            TopAppBar(
+                title = {},
+                actions = {
+                    TextButton(onClick = viewModel::signOut) { Text("Log out") }
+                },
+            )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -51,25 +56,13 @@ fun DeckListScreen(
         },
     ) { padding ->
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // --- TOP HEADER ---
             DeckListHeader(displayName = displayName)
 
-
             if (decks.isEmpty()) {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                     Text(
                         text = "No decks yet.\nTap 'Create Deck' to make your first one.",
                         style = MaterialTheme.typography.bodyLarge,
@@ -82,29 +75,19 @@ fun DeckListScreen(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        // Extra bottom padding so the last deck scrolls clear of the FAB.
                         contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),
                     ) {
                         items(decks, key = { it.deckId }) { deck ->
-                            DeckItem(
-                                deck = deck,
-                                onOpenClick = { onNavigateToDeck(deck.deckId) },
-                            )
+                            DeckItem(deck = deck, onOpenClick = { onNavigateToDeck(deck.deckId) })
                         }
                     }
 
-                    // Soft fade under the "Decks" header
                     Box(
-                        modifier =
-                            Modifier
-                                .align(Alignment.TopCenter)
-                                .fillMaxWidth()
-                                .height(16.dp)
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(MaterialTheme.colorScheme.background, Color.Transparent),
-                                    ),
-                                ),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.background, Color.Transparent))),
                     )
                 }
             }
@@ -134,43 +117,16 @@ fun DeckListScreen(
     }
 }
 
-// Empty title, action only: mirrors the deck page's top bar. The headline lives in the content.
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DeckListTopBar(onSignOut: () -> Unit) {
-    TopAppBar(
-        title = {},
-        actions = {
-            TextButton(onClick = onSignOut) {
-                Text("Log out")
-            }
-        },
-    )
-}
-
-// Left-aligned bold headline with a muted subtitle, same as DeckHeaderSection on the deck page.
 @Composable
 private fun DeckListHeader(displayName: String) {
     Column(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
     ) {
-        Text(
-            text = "My Decks",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-        )
-
+        Text(text = "My Decks", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
         if (displayName.isNotBlank()) {
-            Text(
-                text = displayName,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(text = displayName, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -204,35 +160,19 @@ private fun CreateDeckDialog(
                 )
             }
         },
-        confirmButton = {
-            Button(onClick = onConfirm) { Text("Create") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
+        confirmButton = { Button(onClick = onConfirm) { Text("Create") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 
-// Same card styling as CardItemView on the deck page.
 @Composable
-fun DeckItem(
-    deck: DeckEntity,
-    onOpenClick: () -> Unit,
-) {
+fun DeckItem(deck: DeckEntity, onOpenClick: () -> Unit) {
     Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable { onOpenClick() },
+        modifier = Modifier.fillMaxWidth().clickable { onOpenClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp)) {
             Text(
                 text = deck.name,
                 style = MaterialTheme.typography.titleLarge,

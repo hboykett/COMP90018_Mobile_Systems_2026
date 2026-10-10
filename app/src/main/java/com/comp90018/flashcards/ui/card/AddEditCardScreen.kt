@@ -20,9 +20,7 @@ fun AddEditCardScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isSaved) {
-        if (uiState.isSaved) {
-            onNavigateBack()
-        }
+        if (uiState.isSaved) onNavigateBack()
     }
 
     Scaffold(
@@ -37,11 +35,7 @@ fun AddEditCardScreen(
                 actions = {
                     if (uiState.isEditing) {
                         IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete Card",
-                                tint = MaterialTheme.colorScheme.error,
-                            )
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Card", tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 },
@@ -49,11 +43,7 @@ fun AddEditCardScreen(
         },
     ) { padding ->
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             OutlinedTextField(
@@ -79,26 +69,30 @@ fun AddEditCardScreen(
     }
 
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Card") },
-            text = { Text("Are you sure you want to delete this card? This action cannot be reversed.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showDeleteDialog = false
-                        viewModel.deleteCard()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text("Delete")
-                }
+        DeleteCardDialog(
+            onConfirm = {
+                showDeleteDialog = false
+                viewModel.deleteCard()
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            },
+            onDismiss = { showDeleteDialog = false },
         )
     }
+}
+
+@Composable
+private fun DeleteCardDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Card") },
+        text = { Text("Are you sure you want to delete this card? This action cannot be reversed.") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            ) { Text("Delete") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
