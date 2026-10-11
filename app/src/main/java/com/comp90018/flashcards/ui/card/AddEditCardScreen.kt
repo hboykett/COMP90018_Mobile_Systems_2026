@@ -98,7 +98,10 @@ private fun AddEditCardTopBar(
 }
 
 @Composable
-private fun DeleteCardDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+private fun DeleteCardDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Delete Card") },

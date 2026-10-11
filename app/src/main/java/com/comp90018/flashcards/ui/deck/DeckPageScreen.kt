@@ -265,10 +265,7 @@ private fun PlayBottomBar(
         Button(
             onClick = onPlay,
             enabled = canPlay,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
+            modifier = Modifier.fillMaxWidth().height(54.dp),
         ) {
             Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(28.dp))
             Spacer(Modifier.width(12.dp))

@@ -65,22 +65,30 @@ class DatabaseInitializer
                         ownerId = ownerId,
                     ),
                 )
-                val ordinals = listOf(
-                    "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th",
-                    "11th", "12th", "13th", "14th", "15th", "16th", "17th", "18th", "19th", "20th",
-                    "21st", "22nd", "23rd", "24th", "25th", "26th",
-                )
                 val alphabetCards =
                     (1..26).map { i ->
                         val letter = ('A' + (i - 1)).toString()
                         CardEntity(
                             cardId = UUID.randomUUID().toString(),
                             deckId = alphabetDeckId,
-                            front = "${ordinals[i - 1]} letter of the alphabet",
+                            front = "${toOrdinal(i)} letter of the alphabet",
                             back = letter,
                         )
                     }
                 alphabetCards.forEach { card -> cardDao.insertCard(card) }
+            }
+        }
+
+        private fun toOrdinal(number: Int): String {
+            val hundredRemainder = number % 100
+            if (hundredRemainder in (11..13)) {
+                return "${number}th"
+            }
+            return when (number % 10) {
+                1 -> "${number}st"
+                2 -> "${number}nd"
+                3 -> "${number}rd"
+                else -> "${number}th"
             }
         }
     }

@@ -38,10 +38,10 @@ class DeckSummaryViewModel
         // The deckId is passed via navigation arguments
         val deckId: String = checkNotNull(savedStateHandle["deckId"])
 
-        private val _deck = MutableStateFlow<DeckEntity?>(null)
+        private val deckState = MutableStateFlow<DeckEntity?>(null)
 
         val uiState: StateFlow<DeckSummaryUiState> =
-            combine(_deck, repository.getCardsByDeckId(deckId)) { deck, cards ->
+            combine(deckState, repository.getCardsByDeckId(deckId)) { deck, cards ->
                 DeckSummaryUiState(
                     deckName = deck?.name.orEmpty(),
                     deckDescription = deck?.description.orEmpty(),
@@ -52,7 +52,7 @@ class DeckSummaryViewModel
 
         init {
             viewModelScope.launch {
-                _deck.value = repository.getDeckById(deckId)
+                deckState.value = repository.getDeckById(deckId)
             }
         }
 
@@ -60,16 +60,16 @@ class DeckSummaryViewModel
             name: String,
             description: String,
         ) {
-            val currentDeck = _deck.value ?: return
+            val currentDeck = deckState.value ?: return
             val updated = currentDeck.copy(name = name, description = description)
             viewModelScope.launch {
                 repository.updateDeck(updated)
-                _deck.value = updated
+                deckState.value = updated
             }
         }
 
         fun deleteDeck(onDeleted: () -> Unit) {
-            val currentDeck = _deck.value ?: return
+            val currentDeck = deckState.value ?: return
             viewModelScope.launch {
                 repository.deleteDeck(currentDeck)
                 onDeleted()

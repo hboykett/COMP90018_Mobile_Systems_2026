@@ -158,9 +158,7 @@ private fun DeckListTopBar(onSignOut: () -> Unit) {
 }
 
 @Composable
-private fun DeckListHeader(
-    displayName: String,
-) {
+private fun DeckListHeader(displayName: String) {
     Column(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -217,7 +215,10 @@ private fun CreateDeckDialog(
 }
 
 @Composable
-fun DeckItem(deck: DeckEntity, onOpenClick: () -> Unit) {
+fun DeckItem(
+    deck: DeckEntity,
+    onOpenClick: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onOpenClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
