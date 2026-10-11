@@ -56,13 +56,17 @@ class DeckListViewModel
             }
         }
 
-        fun createDeck(name: String) {
+        fun createDeck(
+            name: String,
+            description: String = "",
+        ) {
             val uid = authRepository.currentUid ?: return
             viewModelScope.launch {
                 repository.insertDeck(
                     DeckEntity(
                         deckId = UUID.randomUUID().toString(),
                         name = name,
+                        description = description,
                         ownerId = uid,
                     ),
                 )

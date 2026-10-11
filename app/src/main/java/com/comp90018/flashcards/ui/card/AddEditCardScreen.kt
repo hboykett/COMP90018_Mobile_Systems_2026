@@ -3,11 +3,9 @@ package com.comp90018.flashcards.ui.card
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -19,31 +17,23 @@ fun AddEditCardScreen(
     viewModel: AddEditCardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isSaved) {
-        if (uiState.isSaved) {
-            onNavigateBack()
-        }
+        if (uiState.isSaved) onNavigateBack()
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (uiState.isEditing) "Edit Card" else "Add Card") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
+            AddEditCardTopBar(
+                isEditing = uiState.isEditing,
+                onNavigateBack = onNavigateBack,
+                onDeleteClick = { showDeleteDialog = true },
             )
         },
     ) { padding ->
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             OutlinedTextField(
@@ -67,4 +57,63 @@ fun AddEditCardScreen(
             }
         }
     }
+
+    if (showDeleteDialog) {
+        DeleteCardDialog(
+            onConfirm = {
+                showDeleteDialog = false
+                viewModel.deleteCard()
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddEditCardTopBar(
+    isEditing: Boolean,
+    onNavigateBack: () -> Unit,
+    onDeleteClick: () -> Unit,
+) {
+    TopAppBar(
+        title = { Text(if (isEditing) "Edit Card" else "Add Card") },
+        navigationIcon = {
+            IconButton(onClick = onNavigateBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        },
+        actions = {
+            if (isEditing) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete Card",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun DeleteCardDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Card") },
+        text = { Text("Are you sure you want to delete this card? This action cannot be reversed.") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            ) { Text("Delete") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
