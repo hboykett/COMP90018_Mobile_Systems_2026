@@ -25,20 +25,10 @@ fun AddEditCardScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (uiState.isEditing) "Edit Card" else "Add Card") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (uiState.isEditing) {
-                        IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete Card", tint = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                },
+            AddEditCardTopBar(
+                isEditing = uiState.isEditing,
+                onNavigateBack = onNavigateBack,
+                onDeleteClick = { showDeleteDialog = true },
             )
         },
     ) { padding ->
@@ -77,6 +67,34 @@ fun AddEditCardScreen(
             onDismiss = { showDeleteDialog = false },
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddEditCardTopBar(
+    isEditing: Boolean,
+    onNavigateBack: () -> Unit,
+    onDeleteClick: () -> Unit,
+) {
+    TopAppBar(
+        title = { Text(if (isEditing) "Edit Card" else "Add Card") },
+        navigationIcon = {
+            IconButton(onClick = onNavigateBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        },
+        actions = {
+            if (isEditing) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete Card",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+        },
+    )
 }
 
 @Composable

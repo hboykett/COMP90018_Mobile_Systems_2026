@@ -161,10 +161,8 @@ private fun DeckPageBody(
                 .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // --- TOP HEADER ---
         DeckHeaderSection(uiState = uiState)
 
-        // --- CARDS LIST HEADER ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -188,50 +186,59 @@ private fun DeckPageBody(
             }
         }
 
-        if (uiState.cards.isEmpty()) {
+        CardsListSection(
+            cards = uiState.cards,
+            onEditCard = onEditCard,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun CardsListSection(
+    cards: List<CardEntity>,
+    onEditCard: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (cards.isEmpty()) {
+        Box(
+            modifier = modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "No cards in this deck yet.\nTap 'Add Card' above to create cards.",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    } else {
+        Box(modifier = modifier) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
+            ) {
+                items(cards, key = { it.cardId }) { card ->
+                    CardItemView(
+                        card = card,
+                        onClick = { onEditCard(card.cardId) },
+                    )
+                }
+            }
+
             Box(
                 modifier =
                     Modifier
+                        .align(Alignment.TopCenter)
                         .fillMaxWidth()
-                        .weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "No cards in this deck yet.\nTap 'Add Card' above to create cards.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            Box(modifier = Modifier.weight(1f)) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
-                ) {
-                    items(uiState.cards, key = { it.cardId }) { card ->
-                        CardItemView(
-                            card = card,
-                            onClick = { onEditCard(card.cardId) },
-                        )
-                    }
-                }
-
-                // Soft fade under the "Cards" header
-                Box(
-                    modifier =
-                        Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .height(16.dp)
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(MaterialTheme.colorScheme.background, Color.Transparent),
-                                ),
+                        .height(16.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(MaterialTheme.colorScheme.background, Color.Transparent),
                             ),
-                )
-            }
+                        ),
+            )
         }
     }
 }

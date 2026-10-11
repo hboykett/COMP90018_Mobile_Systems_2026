@@ -38,12 +38,7 @@ fun DeckListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {},
-                actions = {
-                    TextButton(onClick = viewModel::signOut) { Text("Log out") }
-                },
-            )
+            DeckListTopBar(onSignOut = viewModel::signOut)
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -55,43 +50,12 @@ fun DeckListScreen(
             )
         },
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            DeckListHeader(displayName = displayName)
-
-            if (decks.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "No decks yet.\nTap 'Create Deck' to make your first one.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                Box(modifier = Modifier.weight(1f)) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),
-                    ) {
-                        items(decks, key = { it.deckId }) { deck ->
-                            DeckItem(deck = deck, onOpenClick = { onNavigateToDeck(deck.deckId) })
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .height(16.dp)
-                            .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.background, Color.Transparent))),
-                    )
-                }
-            }
-        }
+        DeckListBody(
+            displayName = displayName,
+            decks = decks,
+            onNavigateToDeck = onNavigateToDeck,
+            modifier = Modifier.padding(padding),
+        )
     }
 
     if (showDialog) {
@@ -118,15 +82,102 @@ fun DeckListScreen(
 }
 
 @Composable
-private fun DeckListHeader(displayName: String) {
+private fun DeckListBody(
+    displayName: String,
+    decks: List<DeckEntity>,
+    onNavigateToDeck: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        DeckListHeader(displayName = displayName)
+
+        if (decks.isEmpty()) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "No decks yet.\nTap 'Create Deck' to make your first one.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            Box(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),
+                ) {
+                    items(decks, key = { it.deckId }) { deck ->
+                        DeckItem(
+                            deck = deck,
+                            onOpenClick = { onNavigateToDeck(deck.deckId) },
+                        )
+                    }
+                }
+
+                Box(
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(MaterialTheme.colorScheme.background, Color.Transparent),
+                                ),
+                            ),
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DeckListTopBar(onSignOut: () -> Unit) {
+    TopAppBar(
+        title = {},
+        actions = {
+            TextButton(onClick = onSignOut) {
+                Text("Log out")
+            }
+        },
+    )
+}
+
+@Composable
+private fun DeckListHeader(
+    displayName: String,
+) {
     Column(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
     ) {
-        Text(text = "My Decks", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+        Text(
+            text = "My Decks",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+        )
+
         if (displayName.isNotBlank()) {
-            Text(text = displayName, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = displayName,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
