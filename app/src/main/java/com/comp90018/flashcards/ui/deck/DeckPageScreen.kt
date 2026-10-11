@@ -259,8 +259,7 @@ private fun PlayBottomBar(
                         0.3f to MaterialTheme.colorScheme.background,
                         1f to MaterialTheme.colorScheme.background,
                     ),
-                )
-                .padding(start = 16.dp, end = 16.dp, top = 40.dp, bottom = 16.dp),
+                ).padding(start = 16.dp, end = 16.dp, top = 40.dp, bottom = 16.dp),
     ) {
         Button(
             onClick = onPlay,
